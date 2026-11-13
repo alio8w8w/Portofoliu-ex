@@ -3,13 +3,13 @@
 import { useEffect } from "react"
 import { AboutSection } from "./about-section"
 import { ContactSection } from "./contact-section"
+import type { HeroSlotData } from "@/lib/content/types"
 import { HeroSection } from "./hero-section"
-import { LanguageProvider } from "./language-context"
 import { ServicesSection } from "./services-section"
-import { SiteHeader } from "./site-header"
 import { WorkSection } from "./work-section"
 
-function PortfolioContent() {
+// The navbar, background, audio player and LanguageProvider live in the root layout (SiteShell).
+export function PortfolioSite({ slot }: { slot: HeroSlotData }) {
   useEffect(() => {
     const revealElements = document.querySelectorAll<HTMLElement>("[data-reveal]")
     const observer = new IntersectionObserver((entries, currentObserver) => {
@@ -39,9 +39,8 @@ function PortfolioContent() {
 
   return (
     <div className="portfolio-site">
-      <SiteHeader />
       <main>
-        <HeroSection />
+        <HeroSection slot={slot} />
         <AboutSection />
         <WorkSection />
         <ServicesSection />
@@ -49,8 +48,4 @@ function PortfolioContent() {
       </main>
     </div>
   )
-}
-
-export function PortfolioSite() {
-  return <LanguageProvider><PortfolioContent /></LanguageProvider>
 }

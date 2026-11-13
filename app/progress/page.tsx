@@ -1,7 +1,6 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import { ArrowLeft, CheckCircle2, Circle } from "lucide-react"
-import { ContentHeader } from "@/components/content/content-pages"
 import { getPublicTasks } from "@/lib/content/queries"
 
 export const dynamic = "force-dynamic"
@@ -17,7 +16,6 @@ export default async function ProgressPage() {
 
   return (
     <div className="content-site">
-      <ContentHeader />
       <main className="progress-public-main">
         <Link className="content-back-link" href="/"><ArrowLeft aria-hidden="true" /> Înapoi la portofoliu</Link>
         <section className="progress-public-hero">

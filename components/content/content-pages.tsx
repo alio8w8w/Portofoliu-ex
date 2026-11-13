@@ -1,30 +1,12 @@
 import Link from "next/link"
 import { ArrowLeft, ArrowUpRight, Play, Sparkles } from "lucide-react"
-import { CONTENT_KINDS, CONTENT_META, type ContentEntry, type ContentKind } from "@/lib/content/types"
+import { CONTENT_META, type ContentEntry, type ContentKind } from "@/lib/content/types"
 import { RichTextRenderer } from "@/components/content/rich-text-renderer"
 
 function formatDate(value: string | null) {
   if (!value) return null
   const date = new Date(value.includes("T") ? value : `${value}T12:00:00Z`)
   return new Intl.DateTimeFormat("ro-RO", { day: "numeric", month: "long", year: "numeric" }).format(date)
-}
-
-export function ContentHeader() {
-  return (
-    <header className="content-header">
-      <Link className="content-wordmark" href="/" aria-label="Ilina Boclincă — pagina principală">
-        <span className="content-wordmark-mark">i<span>.</span></span>
-        <span>ilina boclincă</span>
-      </Link>
-      <nav className="content-nav" aria-label="Navigare principală">
-        {CONTENT_KINDS.map((kind) => (
-          <Link key={kind} href={`/${CONTENT_META[kind].segment}`}>{CONTENT_META[kind].title}</Link>
-        ))}
-        <Link href="/progress">Progres</Link>
-      </nav>
-      <Link className="content-home-link" href="/#contact">Hai să vorbim <ArrowUpRight aria-hidden="true" /></Link>
-    </header>
-  )
 }
 
 function ContentFooter() {
@@ -97,7 +79,6 @@ export function ContentIndexPage({ kind, entries }: { kind: ContentKind; entries
 
   return (
     <div className="content-site">
-      <ContentHeader />
       <main className="content-main">
         <section className={`content-hero content-hero-${kind}`}>
           <span className="content-eyebrow"><span />{meta.eyebrow}</span>
@@ -190,7 +171,6 @@ export function ContentDetailPage({ kind, entry }: { kind: ContentKind; entry: C
 
   return (
     <div className="content-site">
-      <ContentHeader />
       <main className="content-detail-main">
         <Link className="content-back-link" href={`/${meta.segment}`}><ArrowLeft aria-hidden="true" /> Înapoi la {meta.title.toLowerCase()}</Link>
         <article>

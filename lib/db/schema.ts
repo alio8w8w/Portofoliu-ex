@@ -1,12 +1,5 @@
-import { pgSchema, pgTable, text, uuid, jsonb, date, integer, boolean, timestamp } from "drizzle-orm/pg-core"
+import { pgTable, text, uuid, jsonb, date, integer, boolean, timestamp } from "drizzle-orm/pg-core"
 import type { ContentKind, ContentStatus, RichTextDocument } from "@/lib/content/types"
-
-const neonAuthSchema = pgSchema("neon_auth")
-
-export const neonAuthUser = neonAuthSchema.table("user", {
-  id: uuid("id").primaryKey(),
-  email: text("email").notNull(),
-})
 
 export const portfolioEntries = pgTable("portfolio_entries", {
   id: uuid("id").defaultRandom().primaryKey(),

@@ -1,20 +1,11 @@
-import { eq } from "drizzle-orm"
-import { auth } from "@/lib/auth/server"
-import { db } from "@/lib/db"
-import { neonAuthUser } from "@/lib/db/schema"
+import { cookies } from "next/headers"
+import { ADMIN_EMAIL, OWNER_ID, SESSION_COOKIE } from "@/lib/auth/config"
+import { isValidSessionToken } from "@/lib/auth/session"
 
 export async function getOwnerSession() {
-  const ownerEmail = process.env.SITE_OWNER_EMAIL?.trim().toLowerCase()
-  if (!ownerEmail) return null
-
-  const { data: session } = await auth.getSession()
-  const sessionEmail = session?.user?.email?.trim().toLowerCase()
-  if (!session?.user || !sessionEmail || sessionEmail !== ownerEmail) return null
-
-  return {
-    userId: session.user.id,
-    email: session.user.email,
-  }
+  const cookieStore = await cookies()
+  if (!(await isValidSessionToken(cookieStore.get(SESSION_COOKIE)?.value))) return null
+  return { userId: OWNER_ID, email: ADMIN_EMAIL }
 }
 
 export async function requireOwnerId() {
@@ -24,16 +15,7 @@ export async function requireOwnerId() {
 }
 
 export async function getSiteOwnerId() {
-  const ownerEmail = process.env.SITE_OWNER_EMAIL?.trim().toLowerCase()
-  if (!ownerEmail) return null
-
-  const [owner] = await db
-    .select({ id: neonAuthUser.id })
-    .from(neonAuthUser)
-    .where(eq(neonAuthUser.email, ownerEmail))
-    .limit(1)
-
-  return owner?.id ?? null
+  return OWNER_ID
 }
 
 export function isSameOriginRequest(request: Request) {

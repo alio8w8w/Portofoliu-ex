@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { authClient } from "@/lib/auth/client"
+import { signOut as signOutAction } from "@/lib/auth/actions"
 
 export function SignOutButton() {
   const router = useRouter()
@@ -10,7 +10,7 @@ export function SignOutButton() {
 
   async function signOut() {
     setPending(true)
-    await authClient.signOut()
+    await signOutAction()
     router.replace("/admin/sign-in")
     router.refresh()
   }

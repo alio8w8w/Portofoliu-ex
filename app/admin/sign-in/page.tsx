@@ -7,5 +7,5 @@ export const metadata: Metadata = { title: "Autentificare admin" }
 
 export default async function AdminSignInPage() {
   if (await getOwnerSession()) redirect("/admin")
-  return <AuthForm mode="sign-in" />
+  return <AuthForm />
 }

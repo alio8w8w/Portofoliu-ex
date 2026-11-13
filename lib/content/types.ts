@@ -114,6 +114,14 @@ export type PortfolioTask = {
   updatedAt: string
 }
 
+export type SlotStatus = "new vlog" | "new tasks" | "nothing new"
+
+export type HeroSlotData = {
+  status: SlotStatus
+  vlog: { title: string; href: string; coverUrl: string | null; coverAlt: string } | null
+  newTaskCount: number
+}
+
 export type PortfolioMedia = {
   id: string
   pathname: string
