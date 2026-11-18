@@ -131,12 +131,80 @@ function PocketItem({ item, active }: { item: Item; active: boolean }) {
   )
 }
 
+/* ---------- Scrolled state: the folder makes way for a column of 8 small dots ---------- */
+
+const DOT_COLORS = ["#ff66a9", "#d9fb5f", "#fe8616", "#7b46f8"] as const
+
+/** True once the page is scrolled past the folder; false again at the very top. */
+function useScrolledPast(threshold: number) {
+  const [past, setPast] = useState(false)
+  useEffect(() => {
+    let frame = 0
+    const update = () => {
+      frame = 0
+      setPast(window.scrollY > threshold)
+    }
+    const onScroll = () => {
+      if (!frame) frame = requestAnimationFrame(update)
+    }
+    update()
+    window.addEventListener("scroll", onScroll, { passive: true })
+    return () => {
+      window.removeEventListener("scroll", onScroll)
+      if (frame) cancelAnimationFrame(frame)
+    }
+  }, [threshold])
+  return past
+}
+
+function DotNav({ links, pathname, label }: { links: { href: string; label: string }[]; pathname: string; label: string }) {
+  return (
+    <motion.nav
+      aria-label={label}
+      className="fixed top-1/2 left-4 z-50 hidden -translate-y-1/2 lg:block"
+      initial={{ opacity: 0, x: -16 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -16 }}
+      transition={{ duration: 0.25 }}
+    >
+      <ul className="flex flex-col gap-1">
+        {links.map((link, i) => {
+          const active = link.href === "/" ? pathname === "/" : isActive(pathname, link.href)
+          const color = DOT_COLORS[i % DOT_COLORS.length]
+          return (
+            <motion.li
+              key={link.href}
+              initial={{ opacity: 0, scale: 0.4 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: i * 0.035, type: "spring", stiffness: 500, damping: 26 }}
+            >
+              <Link
+                href={link.href}
+                aria-label={link.label}
+                aria-current={active ? "page" : undefined}
+                className="dot-link group relative flex size-6 items-center justify-center"
+                style={{ "--dot": color } as CSSProperties}
+              >
+                <span className="dot" aria-hidden="true" />
+                {/* where it goes: shown on hover / keyboard focus */}
+                <span className="dot-tip" aria-hidden="true">{link.label}</span>
+              </Link>
+            </motion.li>
+          )
+        })}
+      </ul>
+    </motion.nav>
+  )
+}
+
 export function FolderNav() {
   const { copy, locale, setLocale } = useLanguage()
   const pathname = usePathname()
   const [menuOpen, setMenuOpen] = useState(false)
 
   useEffect(() => setMenuOpen(false), [pathname])
+  // the desktop folder is ~168px tall; once it has scrolled away, show the dots instead
+  const scrolled = useScrolledPast(140)
 
   const nav = copy.nav.content
 
@@ -206,7 +274,7 @@ export function FolderNav() {
     ))
 
   return (
-    <header className="folder-nav sticky top-0 z-40">
+    <header className="folder-nav sticky top-0 z-40 lg:relative">
       {/* ================= Desktop: the upside-down pink folder ================= */}
       <div className="relative mx-auto hidden h-[168px] w-[min(1680px,calc(100%-24px))] overflow-x-clip lg:block">
         {/* Back flap: deeper on the left, stepping up on the right like a folder's tab cut. */}
@@ -294,6 +362,9 @@ export function FolderNav() {
             </div>
           </motion.nav>
         )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {scrolled && <DotNav links={mobileLinks} pathname={pathname} label={copy.nav.explore} />}
       </AnimatePresence>
     </header>
   )

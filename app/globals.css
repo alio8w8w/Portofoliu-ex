@@ -1003,6 +1003,32 @@ html { scroll-padding-top: 110px; }
 .folder-lang--menu { padding: 7px 14px; background: #fff; color: #7b46f8; box-shadow: 0 1px 2px rgb(0 0 0 / 10%); }
 .folder-lang:focus-visible { outline: 2px solid var(--plum); outline-offset: 3px; }
 
+/* Dot navigation shown after scrolling past the folder (desktop) */
+.dot { width: 11px; height: 11px; border-radius: 50%; background: var(--dot); box-shadow: 0 0 0 2px rgb(255 255 255 / 85%), 0 2px 6px rgb(40 10 40 / 35%); transition: transform .2s cubic-bezier(.3,1.6,.5,1); }
+.dot-link:hover .dot, .dot-link:focus-visible .dot { transform: scale(1.45); }
+.dot-link[aria-current='page'] .dot { box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--dot), 0 2px 6px rgb(40 10 40 / 35%); }
+.dot-link:focus-visible { outline: none; }
+.dot-tip {
+  position: absolute;
+  top: 50%;
+  left: 30px;
+  padding: 5px 10px 4px;
+  border-left: 4px solid var(--dot);
+  border-radius: 6px;
+  background: #fff;
+  box-shadow: 0 6px 14px -4px rgb(40 10 40 / 35%);
+  color: #2e2530;
+  font: 600 10px/1 'DM Sans', sans-serif;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-6px, -50%);
+  transition: opacity .18s, transform .18s;
+}
+.dot-link:hover .dot-tip, .dot-link:focus-visible .dot-tip { opacity: 1; transform: translate(0, -50%); }
+
 /* Mobile dropdown: one clean sheet of paper. */
 .mobile-paper-menu { border-radius: 22px; background: #fff; box-shadow: 0 24px 48px -12px rgb(46 20 40 / 40%); }
 .mobile-paper-link {
