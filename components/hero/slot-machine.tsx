@@ -85,7 +85,8 @@ function decide(mode: Mode, hasNews: boolean): { stops: SymbolId[]; ticket: Tick
 
 const IDLE: SymbolId[] = ["seven", "clover", "heart"]
 
-export function SlotMachine({ data }: { data: HeroSlotData }) {
+/** `pullSignal`: when given, every change pulls the lever (the hero triggers it from the scroll position). */
+export function SlotMachine({ data, pullSignal }: { data: HeroSlotData; pullSignal?: number }) {
   const { copy, locale } = useLanguage()
   const t = copy.slot
   const reduceMotion = useReducedMotion() ?? false
@@ -116,12 +117,17 @@ export function SlotMachine({ data }: { data: HeroSlotData }) {
     lever.start({ rotateX: [0, 150, 0], transition: { duration: 0.8, times: [0, 0.35, 1], ease: ["easeIn", "backOut"] } })
   }, [data.latestPost, lever, mode, reduceMotion])
 
-  // First visit: spin once in News mode so the machine greets you with a ticket.
+  const spinRef = useRef(spin)
+  spinRef.current = spin
+
+  // Pulled from outside (scroll), or — when used on its own — spin once in News mode on first visit.
   useEffect(() => {
-    const timer = window.setTimeout(() => spin("news"), 900)
-    return () => window.clearTimeout(timer)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+    if (pullSignal === undefined) {
+      const timer = window.setTimeout(() => spinRef.current("news"), 900)
+      return () => window.clearTimeout(timer)
+    }
+    if (pullSignal > 0) spinRef.current()
+  }, [pullSignal])
 
   const onReelsStopped = () => {
     if (!spinningRef.current || !pending.current) return

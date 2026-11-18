@@ -194,6 +194,7 @@ export function AudioPlayer() {
 
   const skip = (direction: 1 | -1) => {
     const list = tracksRef.current
+
     if (list.length === 0) return
     switchTo(list, (indexRef.current + direction + list.length) % list.length)
   }

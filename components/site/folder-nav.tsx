@@ -33,9 +33,9 @@ function StarSticker({ size = 34, className = "" }: { size?: number; className?:
     <svg aria-hidden="true" width={size} height={size} viewBox="0 0 40 40" className={className}>
       <path
         d="M20 3.5l4.6 10 10.9 1.2-8.1 7.4 2.3 10.8L20 27.4l-9.7 5.5 2.3-10.8-8.1-7.4 10.9-1.2z"
-        fill="#fe8616" stroke="#d9fb5f" strokeWidth="2.4" strokeLinejoin="round"
+        fill="#7b46f8" stroke="#d9fb5f" strokeWidth="2.4" strokeLinejoin="round"
       />
-      <path d="M20 9.5l2.7 5.9 6.4.7-4.8 4.3 1.4 6.3L20 23.5l-5.7 3.2 1.4-6.3-4.8-4.3 6.4-.7z" fill="#ffa24d" />
+      <path d="M20 9.5l2.7 5.9 6.4.7-4.8 4.3 1.4 6.3L20 23.5l-5.7 3.2 1.4-6.3-4.8-4.3 6.4-.7z" fill="#9b72ff" />
     </svg>
   )
 }
