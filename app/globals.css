@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Righteous&family=Press+Start+2P&family=Great+Vibes&family=Playfair+Display:wght@500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Righteous&family=Press+Start+2P&family=Great+Vibes&family=Playfair+Display:wght@500;600;700&family=Caveat:wght@600;700&family=Special+Elite&display=swap');
 @import 'tailwindcss';
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
@@ -911,44 +911,83 @@ html { scroll-padding-top: 110px; }
 
 /* ---------- Folder navigation: an upside-down pink folder stuffed with papers ---------- */
 .folder-nav {
-  --folder: #f3a3af;
-  --folder-light: #f6b0bb;
-  --folder-edge: #e28c9a;
+  --folder: #ff66a9;        /* Hot Pink: front cover */
+  --folder-back: #f2559c;   /* back of the same folder: same card, a shade deeper */
+  --folder-edge: #e9468f;
+  --lime: #d9fb5f;
+  --orange: #fe8616;
   --ink: #2e2530;
   --plum: #5a2232;
-  /* soft paper-fibre texture shared by every folder surface */
-  --fibre:
-    radial-gradient(rgb(255 255 255 / 18%) 0.6px, transparent 0.9px) 0 0 / 4px 4px,
-    radial-gradient(rgb(160 60 80 / 10%) 0.6px, transparent 0.9px) 2px 2px / 6px 6px;
 }
 
 /* Front cover: lies on top of everything, casting a shadow into the pocket. */
+/* Matte card stock: one flat colour with faint, uneven tone (no gloss, no highlights). */
 .folder-cover {
-  border-radius: 0 0 12px 12px;
-  background: var(--fibre), linear-gradient(180deg, #f5adb8, var(--folder));
-  box-shadow: inset 0 -1px 0 var(--folder-edge), 0 8px 12px -4px rgb(110 30 50 / 38%);
+  border-radius: 0 0 10px 10px;
+  background:
+    radial-gradient(ellipse 40% 120% at 18% 30%, rgb(255 255 255 / 7%), transparent 70%),
+    radial-gradient(ellipse 35% 140% at 78% 70%, rgb(140 20 80 / 6%), transparent 70%),
+    var(--folder);
+  box-shadow: 0 1px 0 var(--folder-edge), 0 6px 10px -5px rgb(110 20 60 / 35%);
 }
 .folder-cover--mobile { position: relative; z-index: 3; height: 58px; border-radius: 0 0 18px 18px; }
 
 /* Back flap: darker at the top where it disappears into the pocket. */
 .folder-flap {
   background:
-    linear-gradient(180deg, rgb(120 40 55 / 42%) 0, rgb(120 40 55 / 14%) 26px, transparent 46px),
-    var(--fibre),
-    var(--folder-light);
-  box-shadow: inset 0 -2px 0 rgb(214 120 136 / 55%), 0 8px 14px -6px rgb(110 30 50 / 32%);
+    linear-gradient(180deg, rgb(90 10 50 / 42%) 0, rgb(90 10 50 / 14%) 28px, transparent 56px),
+    radial-gradient(ellipse 30% 90% at 60% 80%, rgb(255 255 255 / 5%), transparent 70%),
+    var(--folder-back);
+  box-shadow: 0 1px 0 #d93f86, 0 8px 12px -6px rgb(110 20 60 / 32%);
 }
-.folder-flap-curve { background: radial-gradient(circle at 100% 100%, transparent 15.5px, var(--folder-light) 16px); }
+.folder-flap-curve { background: radial-gradient(circle at 100% 100%, transparent 17.5px, var(--folder-back) 18px); }
 
 /* A loose item in the pocket. The shadow is a filter so it follows torn (clip-path) edges. */
 .pocket-wrap { filter: drop-shadow(0 6px 6px rgb(60 20 30 / 30%)) drop-shadow(0 1px 1px rgb(0 0 0 / 15%)); will-change: transform; }
 .pocket-item { text-decoration: none; outline: 1px solid transparent; }
 .pocket-item:focus-visible { outline: 2px solid var(--plum); outline-offset: 3px; }
 
-.folder-lang { padding: 4px 9px; border-radius: 999px; color: var(--plum); font: 700 10px/1 'DM Sans', sans-serif; letter-spacing: 0.16em; transition: background-color .2s, color .2s; }
-.folder-lang:hover { background: rgb(255 255 255 / 30%); }
-.folder-lang[aria-pressed='true'] { background: var(--plum); color: #fbe3e8; }
-.folder-lang--menu { padding: 7px 14px; background: #fff; color: var(--ink); box-shadow: 0 1px 2px rgb(0 0 0 / 10%); }
+/* Labels that look like they belong to the sheet they are on (colours from the site palette). */
+.sheet-label { position: absolute; bottom: 4px; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; transform: translateX(-50%); line-height: 1; }
+/* rubber stamp on crumpled paper: Majorelle ink, boxed, a little uneven */
+.sheet-label--stamp {
+  padding: 1px 6px 0;
+  border: 1.5px solid #7b46f8;
+  border-radius: 3px;
+  color: #7b46f8;
+  font: 400 11px/1.1 'Special Elite', 'Courier New', monospace;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  opacity: 0.88;
+  mix-blend-mode: multiply;
+  transform: translateX(-50%) rotate(-3deg);
+}
+/* camcorder overlay burned into the dark photo: Lime Cream pixels, Hot Pink REC dot */
+.sheet-label--camcorder { color: #d9fb5f; font: 400 9px/1 'Press Start 2P', monospace; letter-spacing: 0.08em; text-transform: uppercase; text-shadow: 0 0 6px rgb(217 251 95 / 55%); }
+.sheet-rec { width: 8px; height: 8px; border-radius: 50%; background: #ff66a9; box-shadow: 0 0 6px #ff66a9; animation: sheet-rec 1.2s steps(1) infinite; }
+@keyframes sheet-rec { 50% { opacity: 0.25; } }
+/* Hot Pink marker handwriting on grid paper */
+.sheet-label--marker { bottom: 1px; color: #ff4f9e; font: 700 19px/1 'Caveat', cursive; mix-blend-mode: multiply; transform: translateX(-50%) rotate(-2deg); }
+/* orange camera date stamp printed on the photo */
+.sheet-label--datestamp { color: #fe8616; font: 400 9px/1 'Press Start 2P', monospace; letter-spacing: 0.1em; text-transform: uppercase; text-shadow: 0 0 4px rgb(254 134 22 / 70%), 0 0 1px #fff3; }
+/* Majorelle ballpoint on cream note paper */
+.sheet-label--pen { bottom: 1px; color: #6a35ea; font: 600 18px/1 'Caveat', cursive; mix-blend-mode: multiply; transform: translateX(-50%) rotate(1.5deg); }
+/* typewritten on the index card, swiped with a Lime Cream highlighter */
+.sheet-label--typewriter {
+  padding: 1px 8px;
+  color: #3b1f86;
+  font: 400 12px/1.1 'Special Elite', 'Courier New', monospace;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  background: linear-gradient(100deg, transparent 2%, rgb(217 251 95 / 85%) 5%, rgb(217 251 95 / 75%) 93%, transparent 97%);
+  mix-blend-mode: multiply;
+}
+@media (prefers-reduced-motion: reduce) { .sheet-rec { animation: none; } }
+
+.folder-lang { padding: 4px 9px; border-radius: 999px; color: #fff; font: 700 10px/1 'DM Sans', sans-serif; letter-spacing: 0.16em; transition: background-color .2s, color .2s; }
+.folder-lang:hover { background: rgb(255 255 255 / 22%); }
+.folder-lang[aria-pressed='true'] { background: #7b46f8; color: var(--lime); }
+.folder-lang--menu { padding: 7px 14px; background: #fff; color: #7b46f8; box-shadow: 0 1px 2px rgb(0 0 0 / 10%); }
 .folder-lang:focus-visible { outline: 2px solid var(--plum); outline-offset: 3px; }
 
 /* Mobile dropdown: one clean sheet of paper. */
@@ -966,7 +1005,7 @@ html { scroll-padding-top: 110px; }
   text-transform: uppercase;
 }
 .mobile-paper-link:hover { background: #f4f4f2; }
-.mobile-paper-link[aria-current='page'] { background: rgb(243 163 175 / 45%); }
+.mobile-paper-link[aria-current='page'] { background: rgb(255 102 169 / 22%); color: #7b46f8; }
 
 .rhinestone-text {
   padding: 0 0.12em;

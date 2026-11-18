@@ -13,14 +13,13 @@ function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`)
 }
 
-/** Original wordmark: rhinestone script "Ilina" over a wide-tracked serif "Boclincă". */
+/** Wordmark: "Lizard" in script with the silver rhinestone (glitter) texture. */
 function Logo({ compact = false }: { compact?: boolean }) {
   return (
-    <span className="flex flex-col items-center leading-none">
-      <span className={`rhinestone-text font-script leading-[1.1] ${compact ? "text-[32px]" : "text-[34px]"}`}>Ilina</span>
-      {!compact && (
-        <span className="font-serif-display text-[8px] tracking-[0.42em] text-[#5a2232] uppercase">Boclincă</span>
-      )}
+    <span
+      className={`rhinestone-text font-script leading-[1.2] ${compact ? "text-[32px]" : "text-[42px]"}`}
+    >
+      Lizard
     </span>
   )
 }
@@ -34,9 +33,9 @@ function StarSticker({ size = 34, className = "" }: { size?: number; className?:
     <svg aria-hidden="true" width={size} height={size} viewBox="0 0 40 40" className={className}>
       <path
         d="M20 3.5l4.6 10 10.9 1.2-8.1 7.4 2.3 10.8L20 27.4l-9.7 5.5 2.3-10.8-8.1-7.4 10.9-1.2z"
-        fill="#dc5a78" stroke="#fde3e9" strokeWidth="2.4" strokeLinejoin="round"
+        fill="#fe8616" stroke="#d9fb5f" strokeWidth="2.4" strokeLinejoin="round"
       />
-      <path d="M20 9.5l2.7 5.9 6.4.7-4.8 4.3 1.4 6.3L20 23.5l-5.7 3.2 1.4-6.3-4.8-4.3 6.4-.7z" fill="#ec8199" />
+      <path d="M20 9.5l2.7 5.9 6.4.7-4.8 4.3 1.4 6.3L20 23.5l-5.7 3.2 1.4-6.3-4.8-4.3 6.4-.7z" fill="#ffa24d" />
     </svg>
   )
 }
@@ -45,8 +44,8 @@ function PaperClip({ className = "" }: { className?: string }) {
   const d = "M15 14V43a5 5 0 0 1-10 0V9a7 7 0 0 1 14 0v38a9 9 0 0 1-18 0V18"
   return (
     <svg aria-hidden="true" width="22" height="58" viewBox="0 0 22 58" className={className}>
-      <path d={d} fill="none" stroke="#c97789" strokeWidth="1" strokeLinecap="round" transform="translate(0.8 0.8)" opacity="0.55" />
-      <path d={d} fill="none" stroke="#f3bcc7" strokeWidth="2.4" strokeLinecap="round" />
+      <path d={d} fill="none" stroke="#7b46f8" strokeWidth="1" strokeLinecap="round" transform="translate(0.8 0.8)" opacity="0.55" />
+      <path d={d} fill="none" stroke="#d9fb5f" strokeWidth="2.4" strokeLinecap="round" />
     </svg>
   )
 }
@@ -71,9 +70,9 @@ function BinderClip({ className = "" }: { className?: string }) {
 const crumpled = (base: string) =>
   [
     "linear-gradient(115deg, transparent 0 18%, rgb(255 255 255 / 45%) 22%, transparent 30%)",
-    "linear-gradient(70deg, transparent 0 40%, rgb(120 90 60 / 18%) 46%, transparent 52%)",
+    "linear-gradient(70deg, transparent 0 40%, rgb(90 90 100 / 16%) 46%, transparent 52%)",
     "linear-gradient(160deg, transparent 0 58%, rgb(255 255 255 / 35%) 63%, transparent 70%)",
-    "linear-gradient(20deg, transparent 0 72%, rgb(120 90 60 / 14%) 78%, transparent 86%)",
+    "linear-gradient(20deg, transparent 0 72%, rgb(90 90 100 / 12%) 78%, transparent 86%)",
     base,
   ].join(", ")
 
@@ -97,7 +96,11 @@ type Item = {
   /** Where along the bottom strip the label sits (0–100 %), so labels in one stack never line up. */
   labelAt: number
   style: CSSProperties
-  ink: string
+  /**
+   * How the label is "printed" on this particular sheet: a rubber stamp, a camcorder overlay,
+   * marker handwriting, a camera date stamp, ballpoint pen, typewriter + highlighter.
+   */
+  ink: "stamp" | "camcorder" | "marker" | "datestamp" | "pen" | "typewriter"
   extra?: ReactNode
 }
 
@@ -108,23 +111,21 @@ function PocketItem({ item, active }: { item: Item; active: boolean }) {
       style={{ left: item.left, top: item.top, width: item.width, height: item.height, zIndex: item.z, transformOrigin: "50% 0" }}
       initial={false}
       // Pulled out of the pile a little when active, a little more on hover.
-      animate={{ y: active ? 5 : 0, rotate: active ? item.rotate * 0.5 : item.rotate }}
-      whileHover={{ y: 12, rotate: item.rotate * 0.4 }}
-      whileTap={{ y: 8 }}
+      animate={{ y: active ? 3 : 0, rotate: item.rotate }}
+      whileHover={{ y: 8 }}
+      whileTap={{ y: 5 }}
       transition={spring}
     >
       <Link href={item.href} aria-current={active ? "page" : undefined} className="pocket-item block h-full w-full" style={item.style}>
-        <span
-          className="absolute bottom-[7px] -translate-x-1/2 text-[10px] font-semibold whitespace-nowrap uppercase tracking-[0.26em]"
-          style={{ left: `${item.labelAt}%`, color: item.ink }}
-        >
+        <span className={`sheet-label sheet-label--${item.ink}`} style={{ left: `${item.labelAt}%` }}>
+          {item.ink === "camcorder" && <span className="sheet-rec" aria-hidden="true" />}
           {item.label}
         </span>
       </Link>
       {item.extra}
       {active && (
-        <span className="pointer-events-none absolute bottom-[2px]" style={{ left: `calc(${item.labelAt}% - 64px)` }}>
-          <StarSticker size={20} className="rotate-[-14deg] drop-shadow" />
+        <span className="pointer-events-none absolute bottom-[1px]" style={{ left: `calc(${item.labelAt}% - 78px)` }}>
+          <StarSticker size={17} className="rotate-[-14deg] drop-shadow" />
         </span>
       )}
     </motion.div>
@@ -140,41 +141,39 @@ export function FolderNav() {
 
   const nav = copy.nav.content
 
-  // Two messy stacks of long sheets, one each side of the folder. In each stack the top sheet is
-  // the shortest; every sheet underneath is ~34px longer, so a clickable strip with its label
-  // sticks out below the one above it (and out from under the folder's back flap).
+  // One tall stack of long, whole sheets and photo strips, crossing each other on alternating
+  // diagonals (some slope down to the right, some down to the left). Top sheet first; each sheet
+  // below is 20px longer. Because the tilts alternate, a sheet sticks out most on one side, and its
+  // label sits exactly where it sticks out furthest (worked out from the slopes), so it stays visible.
   const items: Item[] = [
-    // ----- left stack (top → bottom of the pile) -----
     {
-      href: "/tutorials", label: nav.tutorials, left: 64, top: 22, width: 480, height: 72, rotate: -1.2, z: 6, labelAt: 62, ink: "#5a4630",
-      style: { background: crumpled("#e6d6bb"), clipPath: "polygon(0 0, 100% 0, 99% 86%, 93% 100%, 74% 93%, 52% 100%, 30% 94%, 9% 100%, 0 91%)" },
+      href: "/tutorials", label: nav.tutorials, left: 60, top: 16, width: 900, height: 64, rotate: 2.4, z: 10, labelAt: 79, ink: "stamp",
+      style: { background: crumpled("#e7e7e4"), clipPath: "polygon(0 0, 100% 0, 100% 90%, 94% 100%, 76% 94%, 58% 100%, 38% 95%, 18% 100%, 0 93%)" },
     },
     {
-      href: "/vlogs", label: nav.vlogs, left: 30, top: 20, width: 520, height: 108, rotate: 1, z: 5, labelAt: 26, ink: "#ffffff",
+      href: "/vlogs", label: nav.vlogs, left: 20, top: 16, width: 960, height: 84, rotate: -1.8, z: 9, labelAt: 21, ink: "camcorder",
       style: {
-        background: "radial-gradient(circle at 18% 60%, rgb(214 160 120 / 55%), transparent 22%), radial-gradient(circle at 70% 45%, rgb(150 110 90 / 50%), transparent 24%), linear-gradient(180deg, #4a4048, #26222a)",
+        background: "radial-gradient(circle at 22% 55%, rgb(190 190 195 / 40%), transparent 14%), radial-gradient(circle at 64% 45%, rgb(140 140 148 / 40%), transparent 16%), linear-gradient(180deg, #5b5b61, #2f2f34)",
         boxShadow: "inset 0 0 0 4px #f7f3ee",
       },
     },
     {
-      href: "/projects", label: nav.projects, left: 92, top: 18, width: 556, height: 144, rotate: -0.8, z: 4, labelAt: 72, ink: "#2e2a33",
+      href: "/projects", label: nav.projects, left: 90, top: 16, width: 880, height: 104, rotate: 2.2, z: 8, labelAt: 83, ink: "marker",
       style: { background: grid },
-      extra: <BinderClip className="pointer-events-none absolute bottom-[-16px] left-[38%] z-10 drop-shadow-md" />,
     },
-    // ----- right stack (top → bottom of the pile) -----
     {
-      href: "/travels", label: nav.travels, left: 664, top: 22, width: 440, height: 70, rotate: 1.2, z: 6, labelAt: 34, ink: "#ffffff",
+      href: "/travels", label: nav.travels, left: 40, top: 16, width: 940, height: 124, rotate: -2, z: 7, labelAt: 32, ink: "datestamp",
       style: {
-        background: "radial-gradient(ellipse at 60% 130%, rgb(244 196 160 / 90%), transparent 55%), linear-gradient(180deg, #8fb3d6, #c7a9b8)",
+        background: "radial-gradient(ellipse at 40% 130%, rgb(255 255 255 / 70%), transparent 45%), linear-gradient(180deg, #a9a9ae, #d2d2d5)",
         boxShadow: "inset 0 0 0 4px #f7f3ee",
       },
     },
     {
-      href: "/thoughts", label: nav.thoughts, left: 630, top: 20, width: 500, height: 106, rotate: -1, z: 5, labelAt: 74, ink: "#5a4630",
-      style: { background: crumpled("#f0e6d2"), clipPath: "polygon(0 0, 100% 0, 100% 93%, 86% 100%, 62% 95%, 38% 100%, 16% 94%, 0 100%)" },
+      href: "/thoughts", label: nav.thoughts, left: 110, top: 16, width: 860, height: 144, rotate: 2.6, z: 6, labelAt: 69, ink: "pen",
+      style: { background: crumpled("#fafaf9"), clipPath: "polygon(0 0, 100% 0, 100% 96%, 88% 100%, 66% 97%, 42% 100%, 20% 97%, 0 100%)" },
     },
     {
-      href: "/progress", label: nav.progress, left: 690, top: 18, width: 520, height: 140, rotate: 0.8, z: 4, labelAt: 40, ink: "#3a3540",
+      href: "/progress", label: nav.progress, left: 30, top: 16, width: 980, height: 164, rotate: -1.6, z: 5, labelAt: 11, ink: "typewriter",
       style: {
         background: "repeating-linear-gradient(180deg, transparent 0 10px, rgb(110 120 160 / 20%) 10px 11px), #ececea",
         borderRadius: "0 0 6px 6px",
@@ -201,17 +200,17 @@ export function FolderNav() {
   return (
     <header className="folder-nav sticky top-0 z-40">
       {/* ================= Desktop: the upside-down pink folder ================= */}
-      <div className="relative mx-auto hidden h-[164px] w-[min(1240px,calc(100%-24px))] overflow-x-clip lg:block">
+      <div className="relative mx-auto hidden h-[204px] w-[min(1040px,calc(100%-24px))] overflow-x-clip lg:block">
         {/* Back flap: deeper on the left, stepping up on the right like a folder's tab cut. */}
-        <div className="folder-flap absolute top-[34px] left-0 h-[86px] w-[71%] rounded-b-[16px]" />
-        <div className="folder-flap absolute top-[34px] right-0 h-[66px] w-[29.5%] rounded-br-[16px]" />
+        <div className="folder-flap absolute top-[34px] left-0 h-[150px] w-[72%] rounded-b-[18px]" />
+        <div className="folder-flap absolute top-[34px] right-0 h-[124px] w-[28.5%] rounded-br-[18px]" />
         {/* concave curve joining the two flap levels */}
-        <span aria-hidden="true" className="folder-flap-curve absolute top-[100px] left-[71%] size-4" />
+        <span aria-hidden="true" className="folder-flap-curve absolute top-[158px] left-[72%] size-[18px]" />
 
-        {/* Contents stuffed into the pocket (the nav links): a fixed 1240px stage, scaled down on smaller screens */}
+        {/* Contents stuffed into the pocket (the nav links): a fixed 1040px stage */}
         <nav
           aria-label={copy.nav.explore}
-          className="absolute top-0 left-1/2 z-[2] h-full w-[1240px] -translate-x-1/2 origin-top max-xl:scale-[0.8]"
+          className="absolute top-0 left-1/2 z-[2] h-full w-[1040px] -translate-x-1/2 origin-top max-[1064px]:scale-[0.96]"
         >
           {items.map((item) => (
             <PocketItem key={item.href} item={item} active={isActive(pathname, item.href)} />
@@ -219,19 +218,15 @@ export function FolderNav() {
         </nav>
 
         {/* Front cover */}
-        <div className="folder-cover absolute inset-x-0 top-0 z-[3] h-[52px]">
+        <div className="folder-cover absolute inset-x-0 top-0 z-[3] h-[60px]">
           <div className="relative flex h-full items-center justify-between px-6">
             <div className="flex items-center gap-4">
               <StarSticker size={34} className="-mt-1 rotate-[-12deg] drop-shadow-sm" />
-              {/* printed upside down, because the folder is */}
-              <span aria-hidden="true" className="rotate-180 font-serif-display text-[11px] tracking-[0.5em] text-[#fbe3e8] uppercase">
-                Portfolio
-              </span>
             </div>
 
             <Link
               href="/"
-              aria-label="Ilina Boclincă — home"
+              aria-label="Lizard — home"
               aria-current={pathname === "/" ? "page" : undefined}
               className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-xl px-3 py-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
             >
@@ -241,6 +236,8 @@ export function FolderNav() {
             <div className="mr-8 flex gap-1" role="group" aria-label="Language">{languageButtons("cover")}</div>
           </div>
           <PaperClip className="pointer-events-none absolute -top-3 right-5 rotate-[8deg] drop-shadow-sm" />
+          {/* binder clip gripping the cover's lower edge, holding the folder shut over the papers */}
+          <BinderClip className="pointer-events-none absolute -bottom-[34px] left-[29%] drop-shadow-md" />
         </div>
       </div>
 
@@ -248,11 +245,11 @@ export function FolderNav() {
       <div className="folder-cover folder-cover--mobile flex items-center justify-between px-4 lg:hidden">
         <div className="flex items-center gap-2">
           <StarSticker size={26} className="rotate-[-12deg]" />
-          <Link href="/" aria-label="Ilina Boclincă — home"><Logo compact /></Link>
+          <Link href="/" aria-label="Lizard — home"><Logo compact /></Link>
         </div>
         <button
           type="button"
-          className="grid size-10 place-items-center rounded-full text-[#5a2232] transition-colors hover:bg-white/25"
+          className="grid size-10 place-items-center rounded-full text-[#7b46f8] transition-colors hover:bg-white/25"
           aria-label={menuOpen ? copy.nav.close : copy.nav.menu}
           aria-expanded={menuOpen}
           aria-controls="mobile-menu"
