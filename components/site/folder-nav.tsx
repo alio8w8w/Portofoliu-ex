@@ -1,10 +1,10 @@
 "use client"
 
-import { AnimatePresence, motion, useMotionValueEvent, useReducedMotion, useScroll, useTransform, type MotionValue } from "framer-motion"
+import { AnimatePresence, animate, motion, useMotionValue, useMotionValueEvent, useReducedMotion, useScroll, useTransform, type MotionValue } from "framer-motion"
 import { Menu, X } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { useEffect, useState, type CSSProperties, type ReactNode } from "react"
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react"
 import { useLanguage, type Locale } from "@/components/portfolio/language-context"
 
 const locales: Locale[] = ["en", "ro", "ru"]
@@ -140,10 +140,12 @@ const DOT_COLORS = ["#ff66a9", "#d9fb5f", "#fe8616", "#7b46f8", "#ffa3cb", "#b5d
 const DOT = 16
 const DOT_GAP = 10
 const DOT_RIGHT = 24
-/** Scroll distance (px) over which the folder turns into dots. Scrubbed by the scroll position, so it reverses naturally. */
-const MORPH_START = 8
-const MORPH_SPAN = 190
-const DOT_STAGGER = 9
+/** Scrolling past this point starts the folder → dots animation; back above it plays it in reverse.
+ *  The animation always runs to the end, however far (or little) you scroll. */
+const COLLAPSE_AT = 60
+const MORPH_DURATION = 0.95
+/** Fraction of the animation by which each next dot starts later. */
+const DOT_STAGGER = 0.05
 
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v))
 const easeOutCubic = (t: number) => 1 - (1 - t) ** 3
@@ -172,27 +174,27 @@ function useDotGeometry(count: number): DotGeometry | null {
  * gentle curve into its place in the right-hand column: x eases out, y eases in-out, so the path bows.
  */
 function MorphDot({
-  index, count, geo, scrollY, reduceMotion, link, active, interactive,
+  index, count, geo, morph, reduceMotion, link, active, interactive,
 }: {
   index: number
   count: number
   geo: DotGeometry
-  scrollY: MotionValue<number>
+  morph: MotionValue<number>
   reduceMotion: boolean
   link: { href: string; label: string }
   active: boolean
   interactive: boolean
 }) {
-  const progress = (s: number) => clamp01((s - MORPH_START - index * DOT_STAGGER) / (MORPH_SPAN - (count - 1) * DOT_STAGGER))
+  const progress = (m: number) => clamp01((m - index * DOT_STAGGER) / (1 - (count - 1) * DOT_STAGGER))
 
   const targetX = geo.vw - DOT_RIGHT - DOT / 2
   const targetY = geo.columnTop + index * (DOT + DOT_GAP) + DOT / 2
   const originX = geo.barLeft + geo.barWidth * (0.56 + 0.4 * (index / (count - 1)))
 
-  const x = useTransform(scrollY, (s) => (reduceMotion ? 0 : (originX - targetX) * (1 - easeOutCubic(progress(s)))))
-  const y = useTransform(scrollY, (s) => (reduceMotion ? 0 : (26 - s - targetY) * (1 - easeInOutCubic(progress(s)))))
-  const scale = useTransform(scrollY, (s) => 0.45 + 0.55 * easeOutCubic(progress(s)))
-  const opacity = useTransform(scrollY, (s) => clamp01(progress(s) / 0.22))
+  const x = useTransform(morph, (m) => (reduceMotion ? 0 : (originX - targetX) * (1 - easeOutCubic(progress(m)))))
+  const y = useTransform(morph, (m) => (reduceMotion ? 0 : (26 - targetY) * (1 - easeInOutCubic(progress(m)))))
+  const scale = useTransform(morph, (m) => 0.45 + 0.55 * easeOutCubic(progress(m)))
+  const opacity = useTransform(morph, (m) => clamp01(progress(m) / 0.22))
 
   return (
     <motion.li style={{ x, y, scale, opacity }}>
@@ -212,13 +214,13 @@ function MorphDot({
   )
 }
 
-function DotNav({ links, pathname, label, scrollY }: { links: { href: string; label: string }[]; pathname: string; label: string; scrollY: MotionValue<number> }) {
+function DotNav({ links, pathname, label, morph }: { links: { href: string; label: string }[]; pathname: string; label: string; morph: MotionValue<number> }) {
   const reduceMotion = useReducedMotion() ?? false
   const geo = useDotGeometry(links.length)
   // Dots only take clicks / focus once they have (almost) settled into the column.
   const [interactive, setInteractive] = useState(false)
-  useMotionValueEvent(scrollY, "change", (s) => setInteractive(s > MORPH_START + MORPH_SPAN * 0.85))
-  useEffect(() => setInteractive(scrollY.get() > MORPH_START + MORPH_SPAN * 0.85), [scrollY])
+  useMotionValueEvent(morph, "change", (m) => setInteractive(m > 0.9))
+  useEffect(() => setInteractive(morph.get() > 0.9), [morph])
 
   if (!geo) return null
 
@@ -236,7 +238,7 @@ function DotNav({ links, pathname, label, scrollY }: { links: { href: string; la
             index={i}
             count={links.length}
             geo={geo}
-            scrollY={scrollY}
+            morph={morph}
             reduceMotion={reduceMotion}
             link={link}
             active={link.href === "/" ? pathname === "/" : isActive(pathname, link.href)}
@@ -254,13 +256,26 @@ export function FolderNav() {
   const [menuOpen, setMenuOpen] = useState(false)
 
   useEffect(() => setMenuOpen(false), [pathname])
-  // Scroll-linked: as the page scrolls, the folder tucks its papers in and shrinks towards the top
-  // right while the dots peel off its cover. Scrolling back up plays the same motion in reverse.
+  // Once you scroll past COLLAPSE_AT, the folder tucks its papers in and shrinks towards the top right
+  // while the dots peel off its cover and glide into the column; back at the top it all plays in
+  // reverse. The motion is time-based, so it always completes instead of stopping half-way.
   const { scrollY } = useScroll()
   const reduceMotion = useReducedMotion() ?? false
-  const folderScale = useTransform(scrollY, [0, MORPH_START + MORPH_SPAN], [1, reduceMotion ? 1 : 0.94])
-  const folderOpacity = useTransform(scrollY, [MORPH_START + 40, MORPH_START + MORPH_SPAN * 0.8], [1, 0])
-  const sheetsTuck = useTransform(scrollY, [0, MORPH_START + MORPH_SPAN * 0.7], [0, reduceMotion ? 0 : -34])
+  const morph = useMotionValue(0)
+  const morphTarget = useRef(0)
+  useEffect(() => {
+    const update = (s: number) => {
+      const target = s > COLLAPSE_AT ? 1 : 0
+      if (target === morphTarget.current) return
+      morphTarget.current = target
+      animate(morph, target, { duration: reduceMotion ? 0.2 : MORPH_DURATION, ease: [0.65, 0, 0.35, 1] })
+    }
+    update(scrollY.get())
+    return scrollY.on("change", update)
+  }, [morph, reduceMotion, scrollY])
+  const folderScale = useTransform(morph, [0, 1], [1, reduceMotion ? 1 : 0.94])
+  const folderOpacity = useTransform(morph, [0.1, 0.75], [1, 0])
+  const sheetsTuck = useTransform(morph, [0, 0.6], [0, reduceMotion ? 0 : -34])
 
   const nav = copy.nav.content
 
@@ -422,7 +437,7 @@ export function FolderNav() {
           </motion.nav>
         )}
       </AnimatePresence>
-      <DotNav links={mobileLinks} pathname={pathname} label={copy.nav.explore} scrollY={scrollY} />
+      <DotNav links={mobileLinks} pathname={pathname} label={copy.nav.explore} morph={morph} />
     </header>
   )
 }

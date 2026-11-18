@@ -114,12 +114,9 @@ export type PortfolioTask = {
   updatedAt: string
 }
 
-export type SlotStatus = "new vlog" | "new tasks" | "nothing new"
-
+/** What the hero slot machine needs from the server: a post published in the last 24 hours, if any. */
 export type HeroSlotData = {
-  status: SlotStatus
-  vlog: { title: string; href: string; coverUrl: string | null; coverAlt: string } | null
-  newTaskCount: number
+  latestPost: { title: string; href: string; kind: ContentKind } | null
 }
 
 export type PortfolioMedia = {

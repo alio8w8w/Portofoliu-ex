@@ -1,247 +1,326 @@
 "use client"
 
-import { motion, useAnimationControls, useReducedMotion } from "framer-motion"
-import { ArrowUpRight, Camera, Cherry, Code, Heart, ListChecks, Music, Play, Star } from "lucide-react"
+import { AnimatePresence, motion, useAnimationControls, useReducedMotion } from "framer-motion"
+import {
+  ArrowUpRight, Camera, Cherry, Clover, CloudRain, Code, Dumbbell, Gem, GitBranch, Heart, Languages, Newspaper, Palette, Star,
+  type LucideIcon,
+} from "lucide-react"
 import Link from "next/link"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useLanguage } from "@/components/portfolio/language-context"
-import type { HeroSlotData, SlotStatus } from "@/lib/content/types"
+import { CONTENT_META, type HeroSlotData } from "@/lib/content/types"
 
-type SymbolId = "vlog" | "task" | "star" | "heart" | "camera" | "code" | "music" | "cherry" | "seven"
-type Phase = "idle" | "spinning" | "result"
+/* ------------------------------------------------------------------------------------------------
+ * A big, realistic pink slot machine with three game modes, switched with the keys on its deck:
+ *  - News:  three "post" symbols + a ticket linking to the post, if something was published in
+ *           the last 24 hours; otherwise mixed symbols and a "nothing new" ticket.
+ *  - Skill: picks today's skill to train (English, GitHub, full-stack, sport, design).
+ *  - Luck:  a lucky day (more likely) or not; prints congratulations or a motivational note.
+ * The result is printed on a paper ticket that slides out of the slot under the reels.
+ * ---------------------------------------------------------------------------------------------- */
 
-const FILLER: SymbolId[] = ["star", "heart", "camera", "code", "music", "cherry", "seven"]
-const ALL_SYMBOLS: SymbolId[] = [...FILLER, "vlog", "task"]
-const IDLE_SYMBOLS: SymbolId[] = ["seven", "cherry", "star"]
+type Mode = "news" | "skill" | "luck"
+type Skill = "english" | "github" | "fullstack" | "sport" | "design"
+type SymbolId = "post" | Skill | "clover" | "seven" | "star" | "heart" | "cherry" | "gem" | "camera" | "rain"
+
+type Ticket =
+  | { kind: "post" }
+  | { kind: "noNews" }
+  | { kind: "skill"; skill: Skill }
+  | { kind: "lucky" }
+  | { kind: "unlucky"; quote: number }
+
+const MODES: Mode[] = ["news", "skill", "luck"]
+const SKILLS: Skill[] = ["english", "github", "fullstack", "sport", "design"]
+const LUCKY_CHANCE = 0.72
+const QUOTE_COUNT = 5
+
+const SYMBOLS: Record<SymbolId, { icon?: LucideIcon; color: string; fill?: boolean; tag?: string }> = {
+  post: { icon: Newspaper, color: "#7b46f8", tag: "NEW" },
+  english: { icon: Languages, color: "#7b46f8" },
+  github: { icon: GitBranch, color: "#2e2530" },
+  fullstack: { icon: Code, color: "#ff4f9e" },
+  sport: { icon: Dumbbell, color: "#fe8616" },
+  design: { icon: Palette, color: "#e0115f" },
+  clover: { icon: Clover, color: "#3faa4d", fill: true },
+  seven: { color: "#e0115f" },
+  star: { icon: Star, color: "#f2b200", fill: true },
+  heart: { icon: Heart, color: "#ff4f9e", fill: true },
+  cherry: { icon: Cherry, color: "#e0115f" },
+  gem: { icon: Gem, color: "#7b46f8" },
+  camera: { icon: Camera, color: "#2e2530" },
+  rain: { icon: CloudRain, color: "#6f7fa8" },
+}
+
+const NEWS_FILLER: SymbolId[] = ["star", "heart", "cherry", "seven", "gem", "camera"]
+const LUCK_FILLER: SymbolId[] = ["rain", "star", "heart", "seven", "cherry", "gem"]
+const STRIP_FILLER: SymbolId[] = ["star", "heart", "cherry", "seven", "gem", "camera", "clover", "post", "english", "sport"]
 
 function pick<T>(list: readonly T[]): T {
   return list[Math.floor(Math.random() * list.length)]
 }
 
-/** Where each reel must stop for a given status. */
-function stopSymbolsFor(status: SlotStatus): SymbolId[] {
-  if (status === "new vlog") return ["vlog", "vlog", "vlog"]
-  if (status === "new tasks") return ["task", "task", "task"]
-
-  // "nothing new": assorted filler symbols, never three of a kind.
-  const first = pick(FILLER)
-  const second = pick(FILLER)
-  let third = pick(FILLER)
-  while (first === second && second === third) third = pick(FILLER)
-  return [first, second, third]
+/** Three symbols that are NOT all the same. */
+function mixed(pool: SymbolId[]): SymbolId[] {
+  const a = pick(pool), b = pick(pool)
+  let c = pick(pool)
+  while (a === b && b === c) c = pick(pool)
+  return [a, b, c]
 }
 
-export function SlotMachine({ data }: { data: HeroSlotData }) {
-  const { copy } = useLanguage()
-  const reduceMotion = useReducedMotion()
-  const leverControls = useAnimationControls()
-
-  const [strips, setStrips] = useState<SymbolId[][]>(IDLE_SYMBOLS.map((symbol) => [symbol]))
-  const [spinId, setSpinId] = useState(0)
-  const [phase, setPhase] = useState<Phase>("idle")
-  const phaseRef = useRef<Phase>("idle")
-
-  const updatePhase = (next: Phase) => {
-    phaseRef.current = next
-    setPhase(next)
+function decide(mode: Mode, hasNews: boolean): { stops: SymbolId[]; ticket: Ticket; win: boolean } {
+  if (mode === "news") {
+    return hasNews
+      ? { stops: ["post", "post", "post"], ticket: { kind: "post" }, win: true }
+      : { stops: mixed(NEWS_FILLER), ticket: { kind: "noNews" }, win: false }
   }
+  if (mode === "skill") {
+    const skill = pick(SKILLS)
+    return { stops: [skill, skill, skill], ticket: { kind: "skill", skill }, win: true }
+  }
+  return Math.random() < LUCKY_CHANCE
+    ? { stops: ["clover", "clover", "clover"], ticket: { kind: "lucky" }, win: true }
+    : { stops: mixed(LUCK_FILLER), ticket: { kind: "unlucky", quote: Math.floor(Math.random() * QUOTE_COUNT) }, win: false }
+}
 
-  const spin = useCallback(() => {
-    if (phaseRef.current === "spinning") return
-    const stops = stopSymbolsFor(data.status)
+const IDLE: SymbolId[] = ["seven", "clover", "heart"]
 
+export function SlotMachine({ data }: { data: HeroSlotData }) {
+  const { copy, locale } = useLanguage()
+  const t = copy.slot
+  const reduceMotion = useReducedMotion() ?? false
+  const lever = useAnimationControls()
+
+  const [mode, setMode] = useState<Mode>("news")
+  const [strips, setStrips] = useState<SymbolId[][]>(IDLE.map((s) => [s]))
+  const [spinId, setSpinId] = useState(0)
+  const [spinning, setSpinning] = useState(false)
+  const [result, setResult] = useState<{ ticket: Ticket; win: boolean; number: number } | null>(null)
+  const pending = useRef<{ ticket: Ticket; win: boolean } | null>(null)
+  const spinningRef = useRef(false)
+
+  const spin = useCallback((forMode: Mode = mode) => {
+    if (spinningRef.current) return
+    spinningRef.current = true
+    setSpinning(true)
+    setResult(null)
+
+    const outcome = decide(forMode, Boolean(data.latestPost))
+    pending.current = outcome
     setStrips((previous) => previous.map((strip, reel) => {
       const showing = strip[strip.length - 1]
-      const fillerCount = reduceMotion ? 2 : 14 + reel * 6
-      return [showing, ...Array.from({ length: fillerCount }, () => pick(ALL_SYMBOLS)), stops[reel]]
+      const filler = reduceMotion ? 2 : 16 + reel * 6
+      return [showing, ...Array.from({ length: filler }, () => pick(STRIP_FILLER)), outcome.stops[reel]]
     }))
     setSpinId((id) => id + 1)
-    updatePhase("spinning")
+    lever.start({ rotateX: [0, 150, 0], transition: { duration: 0.8, times: [0, 0.35, 1], ease: ["easeIn", "backOut"] } })
+  }, [data.latestPost, lever, mode, reduceMotion])
 
-    leverControls.start({
-      rotateX: [0, 155, 0],
-      transition: { duration: 0.75, times: [0, 0.35, 1], ease: ["easeIn", "backOut"] },
-    })
-  }, [data.status, leverControls, reduceMotion])
-
-  // Give the machine one spin when the page opens so visitors see what's new.
+  // First visit: spin once in News mode so the machine greets you with a ticket.
   useEffect(() => {
-    const timer = window.setTimeout(spin, 900)
+    const timer = window.setTimeout(() => spin("news"), 900)
     return () => window.clearTimeout(timer)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const onLastReelStopped = () => {
-    if (spinId > 0 && phaseRef.current === "spinning") updatePhase("result")
+  const onReelsStopped = () => {
+    if (!spinningRef.current || !pending.current) return
+    spinningRef.current = false
+    setSpinning(false)
+    setResult({ ...pending.current, number: 1000 + Math.floor(Math.random() * 9000) })
   }
 
-  const isWin = phase === "result" && data.status !== "nothing new"
-  const spinning = phase === "spinning"
+  const chooseMode = (next: Mode) => {
+    if (spinningRef.current || next === mode) return
+    setMode(next)
+    setResult(null)
+  }
+
+  const win = Boolean(result?.win)
 
   return (
-    <div className="slot-wrap relative mx-auto w-full max-w-[420px] pr-9 md:pr-11">
-      <div className="slot-machine" data-phase={phase} data-win={isWin || undefined}>
-        {/* Marquee */}
-        <div className="slot-marquee">
-          <div className="slot-bulbs" aria-hidden="true">
-            {Array.from({ length: 11 }, (_, i) => <span key={i} style={{ animationDelay: `${i * 0.09}s` }} />)}
+    <div className="sm-wrap">
+      <div className="sm-cabinet" data-spinning={spinning || undefined} data-win={win || undefined}>
+        {/* ---- crown: lamps + marquee ---- */}
+        <div className="sm-crown" aria-hidden="true">
+          <span className="sm-lamp" />
+          <span className="sm-crown-divider" />
+          <span className="sm-lamp" />
+        </div>
+        <div className="sm-marquee">
+          <div className="sm-hearts" aria-hidden="true">
+            {[0, 1, 2, 3].map((i) => <Heart key={i} className="sm-heart" style={{ animationDelay: `${i * 0.12}s` }} />)}
           </div>
-          <p className="font-pixel slot-neon text-[clamp(10px,2.6vw,14px)]">{copy.slot.marquee}</p>
-          <p className="font-pixel mt-1 text-[clamp(6px,1.5vw,8px)] tracking-[0.3em] text-white/80">{copy.slot.subtitle}</p>
+          <p className="sm-title" aria-live="polite">{spinning ? t.spinning : t.titles[mode]}</p>
         </div>
 
-        {/* Chrome body + pink CRT screen */}
-        <div className="slot-body">
-          <div className="slot-screen">
-            <div className="font-pixel flex justify-between text-[clamp(6px,1.4vw,8px)] text-[#7a2350]/80" aria-hidden="true">
-              <span>PLAYER 1</span>
-              <span>WORLD 1-1</span>
-            </div>
-            <div className="slot-reels" aria-hidden={spinning}>
+        {/* ---- reel window ---- */}
+        <div className="sm-window">
+          <div className="sm-bezel">
+            <div className="sm-reels" aria-hidden="true">
               {strips.map((strip, reel) => (
-                <div key={reel} className="slot-reel">
+                <div key={reel} className="sm-reel">
                   <motion.div
                     key={spinId}
                     className="flex flex-col"
                     initial={{ y: "0%" }}
-                    animate={{
-                      y: `${-((strip.length - 1) / strip.length) * 100}%`,
-                      filter: spinId === 0 ? "blur(0px)" : ["blur(0px)", "blur(1.6px)", "blur(0px)"],
-                    }}
-                    transition={{
-                      y: { duration: reduceMotion ? 0.35 : 1.3 + reel * 0.45, ease: [0.18, 0.62, 0.3, 1.06] },
-                      filter: { duration: reduceMotion ? 0.35 : 1.3 + reel * 0.45, times: [0, 0.2, 1] },
-                    }}
-                    onAnimationComplete={reel === strips.length - 1 ? onLastReelStopped : undefined}
+                    animate={{ y: `${-((strip.length - 1) / strip.length) * 100}%` }}
+                    transition={{ duration: reduceMotion ? 0.35 : 1.35 + reel * 0.45, ease: [0.16, 0.6, 0.3, 1.04] }}
+                    onAnimationComplete={reel === strips.length - 1 && spinId > 0 ? onReelsStopped : undefined}
                   >
-                    {strip.map((symbol, i) => (
-                      <div key={i} className="slot-cell">
-                        <SlotSymbol id={symbol} coverUrl={data.vlog?.coverUrl ?? null} />
-                      </div>
-                    ))}
+                    {strip.map((symbol, i) => <div key={i} className="sm-cell"><Symbol id={symbol} /></div>)}
                   </motion.div>
                 </div>
               ))}
-              <span className="slot-payline" aria-hidden="true" />
+              <span className="sm-payline" />
             </div>
+            <span className="sm-glass" aria-hidden="true" />
           </div>
         </div>
 
-        {/* Control deck */}
-        <div className="slot-deck">
-          <div className="flex gap-[6%]" aria-hidden="true">
-            {[0, 1, 2].map((i) => <span key={i} className="slot-arcade-btn slot-arcade-btn--blue" />)}
+        {/* ---- deck: mode keys + spin ---- */}
+        <div className="sm-deck">
+          <div className="sm-keys" role="group" aria-label={t.modeGroup}>
+            {MODES.map((m) => (
+              <motion.button
+                key={m}
+                type="button"
+                className="sm-key"
+                aria-pressed={mode === m}
+                disabled={spinning}
+                onClick={() => chooseMode(m)}
+                whileTap={{ y: 3 }}
+              >
+                {t.modes[m]}
+              </motion.button>
+            ))}
           </div>
-          <motion.button
-            type="button"
-            onClick={spin}
-            disabled={spinning}
-            whileTap={{ y: 3, scale: 0.96 }}
-            className="slot-spin-btn font-pixel"
-          >
-            {spinning ? copy.slot.spinning : copy.slot.spin}
+          <motion.button type="button" className="sm-spin" onClick={() => spin()} disabled={spinning} whileTap={{ scale: 0.92 }}>
+            {t.spin}
           </motion.button>
-          <div className="flex gap-[6%]" aria-hidden="true">
-            {[0, 1, 2].map((i) => <span key={i} className="slot-arcade-btn slot-arcade-btn--red" />)}
-          </div>
         </div>
 
-        {/* Neon result panel */}
-        <div className="slot-base" aria-live="polite">
-          <SlotResult phase={phase} data={data} />
+        {/* ---- ticket slot ---- */}
+        <div className="sm-slot" aria-hidden="true" />
+        <div className="sm-ticket-track" aria-live="polite">
+          <AnimatePresence>
+            {result && (
+              <motion.div
+                key={spinId}
+                className="sm-ticket"
+                initial={{ y: "-104%" }}
+                animate={{ y: "0%", transition: { duration: reduceMotion ? 0.2 : 0.9, ease: [0.3, 0.9, 0.3, 1] } }}
+                exit={{ y: "-104%", transition: { duration: 0.3, ease: "easeIn" } }}
+              >
+                <TicketBody ticket={result.ticket} number={result.number} data={data} locale={locale} />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* ---- lower door ---- */}
+        <div className="sm-door" aria-hidden="true">
+          <span className="sm-badge">LZ</span>
         </div>
       </div>
 
-      {/* Mechanical lever */}
-      <div className="slot-lever">
-        <span className="slot-lever-housing" aria-hidden="true" />
+      {/* ---- lever ---- */}
+      <div className="sm-lever">
+        <span className="sm-lever-housing" aria-hidden="true" />
         <motion.button
           type="button"
-          aria-label={copy.slot.spin}
-          onClick={spin}
+          aria-label={t.pull}
+          title={t.pull}
+          onClick={() => spin()}
           disabled={spinning}
-          animate={leverControls}
-          whileHover={spinning ? undefined : { rotateX: 18 }}
+          animate={lever}
+          whileHover={spinning ? undefined : { rotateX: 16 }}
           style={{ transformOrigin: "50% 100%", transformPerspective: 500 }}
-          className="slot-lever-arm"
+          className="sm-lever-arm"
         >
-          <span className="slot-lever-ball" />
-          <span className="slot-lever-rod" />
+          <span className="sm-lever-ball" />
+          <span className="sm-lever-rod" />
         </motion.button>
       </div>
     </div>
   )
 }
 
-function SlotResult({ phase, data }: { phase: Phase; data: HeroSlotData }) {
-  const { copy } = useLanguage()
-
-  if (phase !== "result") {
-    return <p className="slot-neon-text font-pixel text-[clamp(9px,2.2vw,12px)]">{phase === "spinning" ? copy.slot.spinning : copy.slot.marquee}</p>
-  }
-
-  if (data.status === "new vlog" && data.vlog) {
-    return (
-      <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="flex flex-col items-center gap-1">
-        <p className="slot-neon-text font-pixel text-[clamp(10px,2.6vw,14px)]">{copy.slot.newVlog}</p>
-        <Link href={data.vlog.href} className="slot-result-link">
-          {data.vlog.title} <ArrowUpRight className="size-3.5" aria-hidden="true" />
-        </Link>
-      </motion.div>
-    )
-  }
-
-  if (data.status === "new tasks") {
-    return (
-      <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="flex flex-col items-center gap-1">
-        <p className="slot-neon-text font-pixel text-[clamp(10px,2.6vw,14px)]">{copy.slot.newTasks} ×{data.newTaskCount}</p>
-        <Link href="/progress" className="slot-result-link">
-          {copy.slot.tasksCta} <ArrowUpRight className="size-3.5" aria-hidden="true" />
-        </Link>
-      </motion.div>
-    )
-  }
-
+function Symbol({ id }: { id: SymbolId }) {
+  const symbol = SYMBOLS[id]
+  if (id === "seven") return <span className="sm-seven">7</span>
+  const Icon = symbol.icon!
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center gap-1">
-      <p className="slot-neon-text font-pixel text-[clamp(9px,2.2vw,12px)]">{copy.slot.nothingNew}</p>
-      <p className="text-[11px] text-white/80">{copy.slot.again}</p>
-    </motion.div>
+    <span className="relative grid size-full place-items-center">
+      <Icon className="size-[52%]" style={{ color: symbol.color, fill: symbol.fill ? symbol.color : "none" }} strokeWidth={1.8} />
+      {symbol.tag && <span className="sm-symbol-tag">{symbol.tag}</span>}
+    </span>
   )
 }
 
-function SlotSymbol({ id, coverUrl }: { id: SymbolId; coverUrl: string | null }) {
-  switch (id) {
-    case "vlog":
-      return (
-        <span className="slot-tile slot-tile--vlog">
-          {coverUrl && <img src={coverUrl} alt="" className="absolute inset-0 size-full object-cover" />}
-          <span className="relative grid size-[42%] place-items-center rounded-full bg-white/90 text-[#ec2b7a] shadow-md">
-            <Play className="size-1/2 translate-x-[6%] fill-current" />
-          </span>
-          <span className="slot-tile-tag font-pixel">NEW VLOG</span>
-        </span>
+function TicketBody({ ticket, number, data, locale }: { ticket: Ticket; number: number; data: HeroSlotData; locale: string }) {
+  const { copy } = useLanguage()
+  const t = copy.slot
+  const date = new Intl.DateTimeFormat(locale, { day: "2-digit", month: "short", year: "numeric" }).format(new Date())
+
+  let body
+  switch (ticket.kind) {
+    case "post":
+      body = (
+        <>
+          <p className="sm-ticket-head">{t.newPost}</p>
+          {data.latestPost && (
+            <>
+              <p className="sm-ticket-kind">{CONTENT_META[data.latestPost.kind].title}</p>
+              <p className="sm-ticket-main">{data.latestPost.title}</p>
+              <Link href={data.latestPost.href} className="sm-ticket-link">{t.read} <ArrowUpRight aria-hidden="true" /></Link>
+            </>
+          )}
+        </>
       )
-    case "task":
-      return (
-        <span className="slot-tile slot-tile--task">
-          <ListChecks className="size-[46%]" strokeWidth={2.4} />
-          <span className="slot-tile-tag font-pixel">NEW TASK</span>
-        </span>
+      break
+    case "noNews":
+      body = (
+        <>
+          <p className="sm-ticket-main">{t.noNews}</p>
+          <p className="sm-ticket-note">{t.noNewsHint}</p>
+        </>
       )
-    case "seven":
-      return <span className="font-pixel text-[clamp(28px,7vw,42px)] text-[#e0115f] [text-shadow:3px_3px_0_#ffd400]">7</span>
-    case "star":
-      return <Star className="size-[58%] fill-[#ffd400] text-[#b88a00]" strokeWidth={1.5} />
-    case "heart":
-      return <Heart className="size-[58%] fill-[#ec2b7a] text-[#a3164f]" strokeWidth={1.5} />
-    case "cherry":
-      return <Cherry className="size-[58%] text-[#e0115f]" strokeWidth={2.2} />
-    case "camera":
-      return <Camera className="size-[56%] text-[#4a1530]" strokeWidth={1.8} />
-    case "code":
-      return <Code className="size-[56%] text-[#a500ff]" strokeWidth={2.4} />
-    case "music":
-      return <Music className="size-[54%] text-[#00a8c0]" strokeWidth={2.2} />
+      break
+    case "skill":
+      body = (
+        <>
+          <p className="sm-ticket-head">{t.skillTitle}</p>
+          <p className="sm-ticket-big">{t.skills[ticket.skill]}</p>
+          <p className="sm-ticket-note">{t.skillHint}</p>
+        </>
+      )
+      break
+    case "lucky":
+      body = (
+        <>
+          <p className="sm-ticket-head">{t.luckyTitle}</p>
+          <p className="sm-ticket-big">☘ ☘ ☘</p>
+          <p className="sm-ticket-main">{t.luckyText}</p>
+        </>
+      )
+      break
+    case "unlucky":
+      body = (
+        <>
+          <p className="sm-ticket-head">{t.unluckyTitle}</p>
+          <p className="sm-ticket-note">{t.unluckyLead}</p>
+          <p className="sm-ticket-main">“{t.quotes[ticket.quote]}”</p>
+        </>
+      )
+      break
   }
+
+  return (
+    <>
+      <div className="sm-ticket-meta"><span>LIZARD · {t.ticketLabel} #{number}</span><span>{date}</span></div>
+      <div className="sm-ticket-body">{body}</div>
+      <div className="sm-ticket-barcode" aria-hidden="true" />
+    </>
+  )
 }

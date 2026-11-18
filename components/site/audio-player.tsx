@@ -1,7 +1,7 @@
 "use client"
 
-import { AnimatePresence, motion } from "framer-motion"
-import { Disc3, Pause, Play, SkipBack, SkipForward } from "lucide-react"
+import { AnimatePresence, motion, useAnimationFrame, useMotionValue, useReducedMotion, useTransform } from "framer-motion"
+import { Pause, Play, SkipBack, SkipForward } from "lucide-react"
 import { usePathname } from "next/navigation"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { playlistFolderForPath, tracksForFolder, type Track } from "@/lib/audio/playlists"
@@ -9,14 +9,19 @@ import { useLanguage } from "@/components/portfolio/language-context"
 
 const VOLUME = 0.8
 const CROSSFADE_MS = 900
+/** Disc speed while playing, in degrees per millisecond (~33 rpm feel). */
+const SPIN_SPEED = 0.2
 
 /**
- * Fixed audio player. It lives in the root layout, so it survives client-side navigation.
- * Two <audio> "decks" let it crossfade when the route's playlist folder changes.
+ * Fixed audio player: a spinning vinyl disc that pulses with the music. Hover (or tap on touch
+ * screens) unfolds a small panel with the track name, play/pause and previous/next.
+ * It lives in the root layout, so it survives client-side navigation; two <audio> "decks" let it
+ * crossfade when the route's playlist folder changes.
  */
 export function AudioPlayer() {
   const { copy } = useLanguage()
   const pathname = usePathname()
+  const reduceMotion = useReducedMotion() ?? false
   const folder = playlistFolderForPath(pathname)
   const tracks = useMemo(() => tracksForFolder(folder), [folder])
 
@@ -28,13 +33,67 @@ export function AudioPlayer() {
   const indexRef = useRef(0)
   const mounted = useRef(false)
 
+  // Web Audio analyser: created on the first play (browsers require a user gesture).
+  const audioCtx = useRef<AudioContext | null>(null)
+  const analysers = useRef<(AnalyserNode | null)[]>([null, null])
+  const freqData = useRef<Uint8Array<ArrayBuffer> | null>(null)
+
   const [isPlaying, setIsPlaying] = useState(false)
   const [index, setIndex] = useState(0)
+  const [open, setOpen] = useState(false)
+  const pointerType = useRef<string>("mouse")
+
+  // disc rotation + beat level, updated every frame
+  const rotation = useMotionValue(0)
+  const level = useMotionValue(0)
+  const discScale = useTransform(level, (l) => 1 + l * 0.14)
+  const haloOpacity = useTransform(level, (l) => 0.25 + l * 0.75)
+  const haloScale = useTransform(level, (l) => 1 + l * 0.35)
 
   const setPlaying = (value: boolean) => {
     playingRef.current = value
     setIsPlaying(value)
   }
+
+  const ensureAnalysers = () => {
+    if (typeof window === "undefined" || !("AudioContext" in window)) return
+    try {
+      if (!audioCtx.current) audioCtx.current = new AudioContext()
+      const ctx = audioCtx.current
+      decks.current.forEach((deck, i) => {
+        if (!deck || analysers.current[i]) return
+        const source = ctx.createMediaElementSource(deck)
+        const analyser = ctx.createAnalyser()
+        analyser.fftSize = 256
+        analyser.smoothingTimeConstant = 0.75
+        source.connect(analyser)
+        analyser.connect(ctx.destination)
+        analysers.current[i] = analyser
+      })
+      if (!freqData.current) freqData.current = new Uint8Array(new ArrayBuffer(128))
+      if (ctx.state === "suspended") void ctx.resume()
+    } catch {
+      // No analyser (e.g. unsupported browser): the disc simply spins without pulsing.
+    }
+  }
+
+  useAnimationFrame((_, delta) => {
+    if (!playingRef.current) {
+      level.set(level.get() * 0.9)
+      return
+    }
+    if (!reduceMotion) rotation.set((rotation.get() + delta * SPIN_SPEED) % 360)
+
+    const analyser = analysers.current[activeDeck.current]
+    const data = freqData.current
+    if (!analyser || !data || reduceMotion) return
+    analyser.getByteFrequencyData(data)
+    // bass energy (lowest bins) drives the pulse
+    let sum = 0
+    for (let i = 1; i < 10; i++) sum += data[i]
+    const bass = Math.min(1, Math.max(0, (sum / 9 - 90) / 140))
+    level.set(level.get() * 0.7 + bass * 0.3)
+  })
 
   const cancelFade = () => {
     if (fadeFrame.current !== null) cancelAnimationFrame(fadeFrame.current)
@@ -112,6 +171,7 @@ export function AudioPlayer() {
   useEffect(() => () => {
     cancelFade()
     decks.current.forEach((deck) => deck?.pause())
+    void audioCtx.current?.close()
   }, [])
 
   const togglePlay = () => {
@@ -126,6 +186,7 @@ export function AudioPlayer() {
       return
     }
 
+    ensureAnalysers()
     if (!deck.getAttribute("src")) deck.src = track.src
     deck.volume = VOLUME
     deck.play().then(() => setPlaying(true)).catch(() => setPlaying(false))
@@ -141,6 +202,12 @@ export function AudioPlayer() {
     if (event.currentTarget === decks.current[activeDeck.current]) skip(1)
   }
 
+  // Mouse: the disc plays/pauses (the panel opens on hover). Touch: tapping the disc opens the panel.
+  const onDiscClick = () => {
+    if (pointerType.current === "touch" && !open) setOpen(true)
+    else togglePlay()
+  }
+
   const track = tracks[index]
 
   return (
@@ -154,51 +221,73 @@ export function AudioPlayer() {
             key="player"
             role="region"
             aria-label={copy.player.label}
-            initial={{ y: 40, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 40, opacity: 0 }}
-            transition={{ type: "spring", stiffness: 260, damping: 26 }}
-            className="audio-player fixed bottom-4 left-1/2 z-50 flex w-[min(360px,calc(100%-32px))] -translate-x-1/2 items-center gap-3 rounded-full py-2 pr-2 pl-2.5 md:right-6 md:bottom-6 md:left-auto md:translate-x-0"
+            className="audio-dock fixed right-5 bottom-5 z-50 flex items-center md:right-7 md:bottom-7"
+            initial={{ opacity: 0, scale: 0.6 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.6 }}
+            transition={{ type: "spring", stiffness: 320, damping: 24 }}
+            onMouseEnter={() => setOpen(true)}
+            onMouseLeave={() => setOpen(false)}
+            onFocus={() => setOpen(true)}
+            onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setOpen(false) }}
           >
-            <motion.span
-              aria-hidden="true"
-              className="grid size-10 shrink-0 place-items-center rounded-full bg-[conic-gradient(from_200deg,#a500ff,#ec2b7a,#ffff00,#ceff32,#00ffff,#a500ff)] text-white shadow-[inset_0_0_0_3px_rgb(255_255_255/55%)]"
-              animate={isPlaying ? { rotate: 360 } : { rotate: 0 }}
-              transition={isPlaying ? { repeat: Infinity, duration: 3.2, ease: "linear" } : { duration: 0.4 }}
-            >
-              <Disc3 className="size-5" />
-            </motion.span>
-
-            <div className="min-w-0 flex-1 leading-tight">
-              <AnimatePresence mode="wait" initial={false}>
-                <motion.p
-                  key={track.src}
-                  initial={{ y: 8, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  exit={{ y: -8, opacity: 0 }}
-                  transition={{ duration: 0.25 }}
-                  className="truncate text-[13px] font-semibold text-[#40202a]"
-                  title={track.title}
+            <AnimatePresence initial={false}>
+              {open && (
+                <motion.div
+                  key="panel"
+                  className="audio-panel"
+                  initial={{ opacity: 0, width: 0, x: 16 }}
+                  animate={{ opacity: 1, width: "auto", x: 0 }}
+                  exit={{ opacity: 0, width: 0, x: 16 }}
+                  transition={{ type: "spring", stiffness: 380, damping: 32 }}
                 >
-                  {track.title}
-                </motion.p>
-              </AnimatePresence>
-              <p className="font-pixel text-[8px] tracking-wider text-[#a3246a] uppercase">
-                {folder} · {index + 1}/{tracks.length}
-              </p>
-            </div>
+                  <div className="audio-panel-inner">
+                    <div className="min-w-0 flex-1 leading-tight">
+                      <AnimatePresence mode="wait" initial={false}>
+                        <motion.p
+                          key={track.src}
+                          initial={{ y: 6, opacity: 0 }}
+                          animate={{ y: 0, opacity: 1 }}
+                          exit={{ y: -6, opacity: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="audio-title"
+                          title={track.title}
+                        >
+                          {track.title}
+                        </motion.p>
+                      </AnimatePresence>
+                      <p className="audio-meta">{index + 1} / {tracks.length}</p>
+                    </div>
+                    <div className="flex items-center gap-0.5">
+                      <PlayerButton label={copy.player.previous} onClick={() => skip(-1)} disabled={tracks.length < 2}>
+                        <SkipBack className="size-4" />
+                      </PlayerButton>
+                      <PlayerButton label={isPlaying ? copy.player.pause : copy.player.play} onClick={togglePlay} primary>
+                        {isPlaying ? <Pause className="size-4" /> : <Play className="size-4 translate-x-px" />}
+                      </PlayerButton>
+                      <PlayerButton label={copy.player.next} onClick={() => skip(1)} disabled={tracks.length < 2}>
+                        <SkipForward className="size-4" />
+                      </PlayerButton>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
-            <div className="flex items-center gap-1">
-              <PlayerButton label={copy.player.previous} onClick={() => skip(-1)} disabled={tracks.length < 2}>
-                <SkipBack className="size-4" />
-              </PlayerButton>
-              <PlayerButton label={isPlaying ? copy.player.pause : copy.player.play} onClick={togglePlay} primary>
-                {isPlaying ? <Pause className="size-4" /> : <Play className="size-4 translate-x-px" />}
-              </PlayerButton>
-              <PlayerButton label={copy.player.next} onClick={() => skip(1)} disabled={tracks.length < 2}>
-                <SkipForward className="size-4" />
-              </PlayerButton>
-            </div>
+            {/* the disc: spins while playing and pulses with the bass */}
+            <button
+              type="button"
+              className="audio-disc-button"
+              aria-label={isPlaying ? copy.player.pause : copy.player.play}
+              aria-pressed={isPlaying}
+              onPointerDown={(event) => { pointerType.current = event.pointerType }}
+              onClick={onDiscClick}
+            >
+              <motion.span aria-hidden="true" className="audio-halo" style={{ opacity: haloOpacity, scale: haloScale }} data-playing={isPlaying || undefined} />
+              <motion.span aria-hidden="true" className="audio-disc" style={{ rotate: rotation, scale: discScale }}>
+                <span className="audio-disc-label" />
+              </motion.span>
+            </button>
           </motion.div>
         )}
       </AnimatePresence>
@@ -220,12 +309,8 @@ function PlayerButton({ label, onClick, disabled, primary, children }: {
       title={label}
       onClick={onClick}
       disabled={disabled}
-      whileTap={{ scale: 0.88, y: 1 }}
-      className={
-        primary
-          ? "grid size-10 place-items-center rounded-full bg-[#ec2b7a] text-white shadow-[0_4px_0_#a3164f,0_8px_18px_rgb(236_43_122/45%)] active:translate-y-0.5 active:shadow-[0_2px_0_#a3164f]"
-          : "grid size-8 place-items-center rounded-full text-[#40202a] transition-colors hover:bg-white/60 disabled:opacity-35"
-      }
+      whileTap={{ scale: 0.88 }}
+      className={primary ? "audio-btn audio-btn--primary" : "audio-btn"}
     >
       {children}
     </motion.button>

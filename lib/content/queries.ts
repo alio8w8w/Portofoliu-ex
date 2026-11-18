@@ -1,4 +1,4 @@
-import { and, asc, desc, eq } from "drizzle-orm"
+import { and, asc, desc, eq, gte } from "drizzle-orm"
 import { db } from "@/lib/db"
 import { portfolioEntries, portfolioMedia, portfolioTasks } from "@/lib/db/schema"
 import { getSiteOwnerId } from "@/lib/content/auth"
@@ -195,4 +195,23 @@ export async function getAdminSummary(userId: string) {
     taskCount: tasks.length,
     completedTaskCount: tasks.filter((task) => task.completed).length,
   }
+}
+
+/** The most recently published entry of any kind since `since` (used by the hero slot machine). */
+export async function getLatestPublicPost(since: Date) {
+  const userId = await getSiteOwnerId()
+  if (!userId) return null
+
+  const [row] = await db
+    .select(entrySelection)
+    .from(portfolioEntries)
+    .where(and(
+      eq(portfolioEntries.userId, userId),
+      eq(portfolioEntries.status, "published"),
+      gte(portfolioEntries.publishedAt, since),
+    ))
+    .orderBy(desc(portfolioEntries.publishedAt))
+    .limit(1)
+
+  return row ? toContentEntry(row) : null
 }
