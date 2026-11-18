@@ -1,6 +1,6 @@
 "use client"
 
-import { AnimatePresence, motion } from "framer-motion"
+import { AnimatePresence, motion, useMotionValueEvent, useReducedMotion, useScroll, useTransform, type MotionValue } from "framer-motion"
 import { Menu, X } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -131,69 +131,120 @@ function PocketItem({ item, active }: { item: Item; active: boolean }) {
   )
 }
 
-/* ---------- Scrolled state: the folder makes way for a column of 8 small dots ---------- */
+/* ---------- Scroll-linked transition: the folder gathers itself up into 8 dots on the right ---------- */
 
-const DOT_COLORS = ["#ff66a9", "#d9fb5f", "#fe8616", "#7b46f8"] as const
+// Eight distinct colours, all drawn from the palette (Hot Pink, Lime Cream, Princeton Orange,
+// Majorelle Blue) and their lighter tints.
+const DOT_COLORS = ["#ff66a9", "#d9fb5f", "#fe8616", "#7b46f8", "#ffa3cb", "#b5d93a", "#ffb35c", "#a98bfb"] as const
 
-/** True once the page is scrolled past the folder; false again at the very top. */
-function useScrolledPast(threshold: number) {
-  const [past, setPast] = useState(false)
+const DOT = 16
+const DOT_GAP = 10
+const DOT_RIGHT = 24
+/** Scroll distance (px) over which the folder turns into dots. Scrubbed by the scroll position, so it reverses naturally. */
+const MORPH_START = 8
+const MORPH_SPAN = 190
+const DOT_STAGGER = 9
+
+const clamp01 = (v: number) => Math.min(1, Math.max(0, v))
+const easeOutCubic = (t: number) => 1 - (1 - t) ** 3
+const easeInOutCubic = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2)
+
+type DotGeometry = { vw: number; barLeft: number; barWidth: number; columnTop: number }
+
+function useDotGeometry(count: number): DotGeometry | null {
+  const [geo, setGeo] = useState<DotGeometry | null>(null)
   useEffect(() => {
-    let frame = 0
-    const update = () => {
-      frame = 0
-      setPast(window.scrollY > threshold)
+    const measure = () => {
+      const vw = document.documentElement.clientWidth
+      const barWidth = Math.min(1680, vw - 24)
+      const columnHeight = count * DOT + (count - 1) * DOT_GAP
+      setGeo({ vw, barLeft: (vw - barWidth) / 2, barWidth, columnTop: (window.innerHeight - columnHeight) / 2 })
     }
-    const onScroll = () => {
-      if (!frame) frame = requestAnimationFrame(update)
-    }
-    update()
-    window.addEventListener("scroll", onScroll, { passive: true })
-    return () => {
-      window.removeEventListener("scroll", onScroll)
-      if (frame) cancelAnimationFrame(frame)
-    }
-  }, [threshold])
-  return past
+    measure()
+    window.addEventListener("resize", measure)
+    return () => window.removeEventListener("resize", measure)
+  }, [count])
+  return geo
 }
 
-function DotNav({ links, pathname, label }: { links: { href: string; label: string }[]; pathname: string; label: string }) {
+/**
+ * One dot. It starts on the folder's cover (spread along it, moving up with the page) and glides on a
+ * gentle curve into its place in the right-hand column: x eases out, y eases in-out, so the path bows.
+ */
+function MorphDot({
+  index, count, geo, scrollY, reduceMotion, link, active, interactive,
+}: {
+  index: number
+  count: number
+  geo: DotGeometry
+  scrollY: MotionValue<number>
+  reduceMotion: boolean
+  link: { href: string; label: string }
+  active: boolean
+  interactive: boolean
+}) {
+  const progress = (s: number) => clamp01((s - MORPH_START - index * DOT_STAGGER) / (MORPH_SPAN - (count - 1) * DOT_STAGGER))
+
+  const targetX = geo.vw - DOT_RIGHT - DOT / 2
+  const targetY = geo.columnTop + index * (DOT + DOT_GAP) + DOT / 2
+  const originX = geo.barLeft + geo.barWidth * (0.56 + 0.4 * (index / (count - 1)))
+
+  const x = useTransform(scrollY, (s) => (reduceMotion ? 0 : (originX - targetX) * (1 - easeOutCubic(progress(s)))))
+  const y = useTransform(scrollY, (s) => (reduceMotion ? 0 : (26 - s - targetY) * (1 - easeInOutCubic(progress(s)))))
+  const scale = useTransform(scrollY, (s) => 0.45 + 0.55 * easeOutCubic(progress(s)))
+  const opacity = useTransform(scrollY, (s) => clamp01(progress(s) / 0.22))
+
   return (
-    <motion.nav
+    <motion.li style={{ x, y, scale, opacity }}>
+      <Link
+        href={link.href}
+        aria-label={link.label}
+        aria-current={active ? "page" : undefined}
+        tabIndex={interactive ? undefined : -1}
+        className="dot-link relative flex items-center justify-center"
+        style={{ "--dot": DOT_COLORS[index % DOT_COLORS.length], width: DOT, height: DOT } as CSSProperties}
+      >
+        <span className="dot" aria-hidden="true" />
+        {/* where it goes: shown on hover / keyboard focus, to the left of the dot */}
+        <span className="dot-tip" aria-hidden="true">{link.label}</span>
+      </Link>
+    </motion.li>
+  )
+}
+
+function DotNav({ links, pathname, label, scrollY }: { links: { href: string; label: string }[]; pathname: string; label: string; scrollY: MotionValue<number> }) {
+  const reduceMotion = useReducedMotion() ?? false
+  const geo = useDotGeometry(links.length)
+  // Dots only take clicks / focus once they have (almost) settled into the column.
+  const [interactive, setInteractive] = useState(false)
+  useMotionValueEvent(scrollY, "change", (s) => setInteractive(s > MORPH_START + MORPH_SPAN * 0.85))
+  useEffect(() => setInteractive(scrollY.get() > MORPH_START + MORPH_SPAN * 0.85), [scrollY])
+
+  if (!geo) return null
+
+  return (
+    <nav
       aria-label={label}
-      className="fixed top-1/2 left-4 z-50 hidden -translate-y-1/2 lg:block"
-      initial={{ opacity: 0, x: -16 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -16 }}
-      transition={{ duration: 0.25 }}
+      aria-hidden={!interactive}
+      className="fixed z-50 hidden lg:block"
+      style={{ right: DOT_RIGHT, top: geo.columnTop, pointerEvents: interactive ? "auto" : "none" }}
     >
-      <ul className="flex flex-col gap-1">
-        {links.map((link, i) => {
-          const active = link.href === "/" ? pathname === "/" : isActive(pathname, link.href)
-          const color = DOT_COLORS[i % DOT_COLORS.length]
-          return (
-            <motion.li
-              key={link.href}
-              initial={{ opacity: 0, scale: 0.4 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: i * 0.035, type: "spring", stiffness: 500, damping: 26 }}
-            >
-              <Link
-                href={link.href}
-                aria-label={link.label}
-                aria-current={active ? "page" : undefined}
-                className="dot-link group relative flex size-6 items-center justify-center"
-                style={{ "--dot": color } as CSSProperties}
-              >
-                <span className="dot" aria-hidden="true" />
-                {/* where it goes: shown on hover / keyboard focus */}
-                <span className="dot-tip" aria-hidden="true">{link.label}</span>
-              </Link>
-            </motion.li>
-          )
-        })}
+      <ul className="flex flex-col" style={{ gap: DOT_GAP }}>
+        {links.map((link, i) => (
+          <MorphDot
+            key={link.href}
+            index={i}
+            count={links.length}
+            geo={geo}
+            scrollY={scrollY}
+            reduceMotion={reduceMotion}
+            link={link}
+            active={link.href === "/" ? pathname === "/" : isActive(pathname, link.href)}
+            interactive={interactive}
+          />
+        ))}
       </ul>
-    </motion.nav>
+    </nav>
   )
 }
 
@@ -203,8 +254,13 @@ export function FolderNav() {
   const [menuOpen, setMenuOpen] = useState(false)
 
   useEffect(() => setMenuOpen(false), [pathname])
-  // the desktop folder is ~168px tall; once it has scrolled away, show the dots instead
-  const scrolled = useScrolledPast(140)
+  // Scroll-linked: as the page scrolls, the folder tucks its papers in and shrinks towards the top
+  // right while the dots peel off its cover. Scrolling back up plays the same motion in reverse.
+  const { scrollY } = useScroll()
+  const reduceMotion = useReducedMotion() ?? false
+  const folderScale = useTransform(scrollY, [0, MORPH_START + MORPH_SPAN], [1, reduceMotion ? 1 : 0.94])
+  const folderOpacity = useTransform(scrollY, [MORPH_START + 40, MORPH_START + MORPH_SPAN * 0.8], [1, 0])
+  const sheetsTuck = useTransform(scrollY, [0, MORPH_START + MORPH_SPAN * 0.7], [0, reduceMotion ? 0 : -34])
 
   const nav = copy.nav.content
 
@@ -276,7 +332,10 @@ export function FolderNav() {
   return (
     <header className="folder-nav sticky top-0 z-40 lg:relative">
       {/* ================= Desktop: the upside-down pink folder ================= */}
-      <div className="relative mx-auto hidden h-[168px] w-[min(1680px,calc(100%-24px))] overflow-x-clip lg:block">
+      <motion.div
+        className="relative mx-auto hidden h-[168px] w-[min(1680px,calc(100%-24px))] overflow-x-clip lg:block"
+        style={{ scale: folderScale, opacity: folderOpacity, transformOrigin: "100% 0%" }}
+      >
         {/* Back flap: deeper on the left, stepping up on the right like a folder's tab cut. */}
         <div className="folder-flap absolute top-[30px] left-0 h-[134px] w-[72%] rounded-b-[18px]" />
         <div className="folder-flap absolute top-[30px] right-0 h-[110px] w-[28.5%] rounded-br-[18px]" />
@@ -284,11 +343,11 @@ export function FolderNav() {
         <span aria-hidden="true" className="folder-flap-curve absolute top-[140px] left-[72%] size-[18px]" />
 
         {/* Contents stuffed into the pocket (the nav links), spanning the whole folder */}
-        <nav aria-label={copy.nav.explore} className="absolute inset-0 z-[2]">
+        <motion.nav aria-label={copy.nav.explore} className="absolute inset-0 z-[2]" style={{ y: sheetsTuck }}>
           {items.map((item) => (
             <PocketItem key={item.href} item={item} active={isActive(pathname, item.href)} />
           ))}
-        </nav>
+        </motion.nav>
 
         {/* Front cover */}
         <div className="folder-cover absolute inset-x-0 top-0 z-[3] h-[52px]">
@@ -312,7 +371,7 @@ export function FolderNav() {
           {/* binder clip gripping the cover's lower edge, holding the folder shut over the papers */}
           <BinderClip className="pointer-events-none absolute -bottom-[34px] left-[30%] drop-shadow-md" />
         </div>
-      </div>
+      </motion.div>
 
       {/* ================= Mobile & tablet (< 1024px): compact cover + hamburger ================= */}
       <div className="folder-cover folder-cover--mobile flex items-center justify-between px-4 lg:hidden">
@@ -363,9 +422,7 @@ export function FolderNav() {
           </motion.nav>
         )}
       </AnimatePresence>
-      <AnimatePresence>
-        {scrolled && <DotNav links={mobileLinks} pathname={pathname} label={copy.nav.explore} />}
-      </AnimatePresence>
+      <DotNav links={mobileLinks} pathname={pathname} label={copy.nav.explore} scrollY={scrollY} />
     </header>
   )
 }
