@@ -8,7 +8,7 @@ const copy = {
   en: {
     player: { label: "Music player", play: "Play", pause: "Pause", next: "Next track", previous: "Previous track" },
     slot: { marquee: "WHAT'S NEW?", subtitle: "PULL TO PLAY", spin: "SPIN", spinning: "SPINNING…", newVlog: "NEW VLOG!", newTasks: "NEW TASKS", tasksCta: "See my progress", nothingNew: "NOTHING NEW… YET", again: "Pull the lever to spin again" },
-    nav: { home: "Home", about: "About", work: "Selected work", services: "Services", contact: "Contact", cta: "Let’s talk", menu: "Open menu", close: "Close menu", explore: "Explore", content: { projects: "Projects", travels: "Travel", vlogs: "Vlogs", thoughts: "Thoughts", tutorials: "Tutorials", progress: "Progress" } },
+    nav: { home: "Home", about: "About", work: "Selected work", services: "Services", contact: "Contact", cta: "Let’s talk", menu: "Open menu", close: "Close menu", explore: "Explore", content: { projects: "Projects", courses: "Courses", vlogs: "Vlogs", thoughts: "Thoughts", tutorials: "Tutorials", progress: "Progress" } },
     hero: {
       eyebrow: "Biomedical engineering × web development",
       title: "Curious by nature,\ncreative by design.",
@@ -84,7 +84,7 @@ const copy = {
   ro: {
     player: { label: "Player muzical", play: "Redă", pause: "Pauză", next: "Piesa următoare", previous: "Piesa anterioară" },
     slot: { marquee: "CE E NOU?", subtitle: "TRAGE MANETA", spin: "SPIN", spinning: "SE ÎNVÂRTE…", newVlog: "VLOG NOU!", newTasks: "TASKURI NOI", tasksCta: "Vezi progresul", nothingNew: "NIMIC NOU… ÎNCĂ", again: "Trage maneta ca să încerci din nou" },
-    nav: { home: "Acasă", about: "Despre mine", work: "Proiecte", services: "Servicii", contact: "Contact", cta: "Hai să vorbim", menu: "Deschide meniul", close: "Închide meniul", explore: "Mai multe", content: { projects: "Portofoliu", travels: "Călătorii", vlogs: "Vloguri", thoughts: "Gânduri", tutorials: "Tutoriale", progress: "Progres" } },
+    nav: { home: "Acasă", about: "Despre mine", work: "Proiecte", services: "Servicii", contact: "Contact", cta: "Hai să vorbim", menu: "Deschide meniul", close: "Închide meniul", explore: "Mai multe", content: { projects: "Portofoliu", courses: "Cursuri", vlogs: "Vloguri", thoughts: "Gânduri", tutorials: "Tutoriale", progress: "Progres" } },
     hero: {
       eyebrow: "Inginerie biomedicală × dezvoltare web",
       title: "Curioasă din fire,\ncreativă prin design.",
@@ -160,7 +160,7 @@ const copy = {
   ru: {
     player: { label: "Музыкальный плеер", play: "Играть", pause: "Пауза", next: "Следующий трек", previous: "Предыдущий трек" },
     slot: { marquee: "ЧТО НОВОГО?", subtitle: "ПОТЯНИ РЫЧАГ", spin: "SPIN", spinning: "КРУТИТСЯ…", newVlog: "НОВЫЙ ВЛОГ!", newTasks: "НОВЫЕ ЗАДАЧИ", tasksCta: "Смотреть прогресс", nothingNew: "ПОКА НИЧЕГО НОВОГО", again: "Потяни рычаг ещё раз" },
-    nav: { home: "Главная", about: "Обо мне", work: "Проекты", services: "Услуги", contact: "Контакты", cta: "Давайте обсудим", menu: "Открыть меню", close: "Закрыть меню", explore: "Ещё", content: { projects: "Портфолио", travels: "Путешествия", vlogs: "Влоги", thoughts: "Мысли", tutorials: "Уроки", progress: "Прогресс" } },
+    nav: { home: "Главная", about: "Обо мне", work: "Проекты", services: "Услуги", contact: "Контакты", cta: "Давайте обсудим", menu: "Открыть меню", close: "Закрыть меню", explore: "Ещё", content: { projects: "Портфолио", courses: "Курсы", vlogs: "Влоги", thoughts: "Мысли", tutorials: "Уроки", progress: "Прогресс" } },
     hero: {
       eyebrow: "Биомедицинская инженерия × веб-разработка",
       title: "Любопытная по натуре,\nтворческая по дизайну.",

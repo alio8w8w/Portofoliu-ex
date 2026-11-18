@@ -955,7 +955,7 @@ html { scroll-padding-top: 110px; }
   border: 1.5px solid #7b46f8;
   border-radius: 3px;
   color: #7b46f8;
-  font: 400 11px/1.1 'Special Elite', 'Courier New', monospace;
+  font: 400 14px/1.1 'Special Elite', 'Courier New', monospace;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   opacity: 0.88;
@@ -963,11 +963,11 @@ html { scroll-padding-top: 110px; }
   transform: translateX(-50%) rotate(-3deg);
 }
 /* camcorder overlay burned into the dark photo: Lime Cream pixels, Hot Pink REC dot */
-.sheet-label--camcorder { color: #d9fb5f; font: 400 9px/1 'Press Start 2P', monospace; letter-spacing: 0.08em; text-transform: uppercase; text-shadow: 0 0 6px rgb(217 251 95 / 55%); }
-.sheet-rec { width: 8px; height: 8px; border-radius: 50%; background: #ff66a9; box-shadow: 0 0 6px #ff66a9; animation: sheet-rec 1.2s steps(1) infinite; }
+.sheet-label--camcorder { color: #d9fb5f; font: 400 11px/1 'Press Start 2P', monospace; letter-spacing: 0.08em; text-transform: uppercase; text-shadow: 0 0 6px rgb(217 251 95 / 55%); }
+.sheet-rec { width: 9px; height: 9px; border-radius: 50%; background: #ff66a9; box-shadow: 0 0 6px #ff66a9; animation: sheet-rec 1.2s steps(1) infinite; }
 @keyframes sheet-rec { 50% { opacity: 0.25; } }
 /* Hot Pink marker handwriting on grid paper */
-.sheet-label--marker { bottom: 1px; color: #ff4f9e; font: 700 19px/1 'Caveat', cursive; mix-blend-mode: multiply; transform: translateX(-50%) rotate(-2deg); }
+.sheet-label--marker { bottom: 0; color: #ff4f9e; font: 700 24px/1 'Caveat', cursive; mix-blend-mode: multiply; transform: translateX(-50%) rotate(-2deg); }
 /* orange camera date stamp printed on the photo */
 .sheet-label--datestamp { color: #fe8616; font: 400 9px/1 'Press Start 2P', monospace; letter-spacing: 0.1em; text-transform: uppercase; text-shadow: 0 0 4px rgb(254 134 22 / 70%), 0 0 1px #fff3; }
 /* Majorelle ballpoint on cream note paper */
@@ -981,6 +981,19 @@ html { scroll-padding-top: 110px; }
   text-transform: uppercase;
   background: linear-gradient(100deg, transparent 2%, rgb(217 251 95 / 85%) 5%, rgb(217 251 95 / 75%) 93%, transparent 97%);
   mix-blend-mode: multiply;
+}
+/* Hot Pink postmark on the envelope */
+.sheet-label--postmark {
+  padding: 2px 10px 1px;
+  border: 1.5px solid #ff4f9e;
+  border-radius: 999px;
+  color: #ff4f9e;
+  font: 400 12px/1.1 'Special Elite', 'Courier New', monospace;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  opacity: 0.9;
+  mix-blend-mode: multiply;
+  transform: translateX(-50%) rotate(4deg);
 }
 @media (prefers-reduced-motion: reduce) { .sheet-rec { animation: none; } }
 

@@ -10,7 +10,7 @@ export const metadata: Metadata = { title: "Panou de administrare" }
 
 const categoryDescriptions = {
   project: "Studii de caz și proiecte web.",
-  travel: "Fotografii și povești de călătorie.",
+  course: "Cursuri și programe de învățare.",
   vlog: "Jurnale video și momente din culise.",
   thought: "Eseuri, fragmente și notițe.",
   tutorial: "Lecții video și ghiduri practice.",

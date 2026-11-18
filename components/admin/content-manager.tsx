@@ -94,10 +94,10 @@ export function ContentManager({ kind, entries, media, initialEntry }: Props) {
             </div>
             <label>Descriere scurtă<textarea name="excerpt" defaultValue={initialEntry?.excerpt ?? ""} maxLength={600} rows={3} placeholder="O introducere care apare pe pagina colecției…" /></label>
 
-            {(kind === "travel" || kind === "vlog") && (
+            {kind === "vlog" && (
               <div className="admin-form-two-col">
-                <label>{kind === "travel" ? "Loc" : "Locație"}<input name="location" defaultValue={initialEntry?.location ?? ""} maxLength={160} placeholder="Ex.: Iași, România" /></label>
-                <label>{kind === "travel" ? "Data călătoriei" : "Data înregistrării"}<input name="occurredAt" type="date" defaultValue={initialEntry?.occurredAt ?? ""} /></label>
+                <label>Locație<input name="location" defaultValue={initialEntry?.location ?? ""} maxLength={160} placeholder="Ex.: Iași, România" /></label>
+                <label>Data înregistrării<input name="occurredAt" type="date" defaultValue={initialEntry?.occurredAt ?? ""} /></label>
               </div>
             )}
             {kind === "tutorial" && <label>Data publicării<input name="occurredAt" type="date" defaultValue={initialEntry?.occurredAt ?? ""} /></label>}

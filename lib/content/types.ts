@@ -1,4 +1,4 @@
-export const CONTENT_KINDS = ["project", "travel", "vlog", "thought", "tutorial", "service"] as const
+export const CONTENT_KINDS = ["project", "course", "vlog", "thought", "tutorial", "service"] as const
 
 export type ContentKind = (typeof CONTENT_KINDS)[number]
 export type ContentStatus = "draft" | "published"
@@ -34,12 +34,12 @@ export const CONTENT_META: Record<ContentKind, ContentMeta> = {
     eyebrow: "Portofoliu",
     singular: "proiect",
   },
-  travel: {
-    segment: "travels",
-    title: "Călătorii",
-    description: "Fotografii și povești adunate pe drum.",
-    eyebrow: "Jurnal de călătorie",
-    singular: "călătorie",
+  course: {
+    segment: "courses",
+    title: "Cursuri",
+    description: "Cursuri și programe de învățare, pas cu pas.",
+    eyebrow: "Învață structurat",
+    singular: "curs",
   },
   vlog: {
     segment: "vlogs",
@@ -73,7 +73,7 @@ export const CONTENT_META: Record<ContentKind, ContentMeta> = {
 
 export const CONTENT_KIND_BY_SEGMENT: Record<string, ContentKind> = {
   projects: "project",
-  travels: "travel",
+  courses: "course",
   vlogs: "vlog",
   thoughts: "thought",
   tutorials: "tutorial",

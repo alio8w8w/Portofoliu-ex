@@ -17,7 +17,7 @@ function isActive(pathname: string, href: string) {
 function Logo({ compact = false }: { compact?: boolean }) {
   return (
     <span
-      className={`rhinestone-text font-script leading-[1.2] ${compact ? "text-[32px]" : "text-[42px]"}`}
+      className={`rhinestone-text font-script leading-[1.2] ${compact ? "text-[32px]" : "text-[38px]"}`}
     >
       Lizard
     </span>
@@ -85,9 +85,8 @@ const grid = [
 type Item = {
   href: string
   label: string
-  /** Position on the 1240px stage. Every sheet starts under the cover (top < 52). */
+  /** Horizontal position and width in % of the folder width. Every sheet starts under the cover. */
   left: number
-  top: number
   width: number
   /** Total length. Sheets lower in a stack are longer, so a strip of them sticks out below the one on top. */
   height: number
@@ -100,7 +99,7 @@ type Item = {
    * How the label is "printed" on this particular sheet: a rubber stamp, a camcorder overlay,
    * marker handwriting, a camera date stamp, ballpoint pen, typewriter + highlighter.
    */
-  ink: "stamp" | "camcorder" | "marker" | "datestamp" | "pen" | "typewriter"
+  ink: "stamp" | "camcorder" | "marker" | "datestamp" | "pen" | "typewriter" | "postmark"
   extra?: ReactNode
 }
 
@@ -108,7 +107,7 @@ function PocketItem({ item, active }: { item: Item; active: boolean }) {
   return (
     <motion.div
       className="pocket-wrap absolute"
-      style={{ left: item.left, top: item.top, width: item.width, height: item.height, zIndex: item.z, transformOrigin: "50% 0" }}
+      style={{ left: `${item.left}%`, top: 14, width: `${item.width}%`, height: item.height, zIndex: item.z, transformOrigin: "50% 0" }}
       initial={false}
       // Pulled out of the pile a little when active, a little more on hover.
       animate={{ y: active ? 3 : 0, rotate: item.rotate }}
@@ -141,42 +140,51 @@ export function FolderNav() {
 
   const nav = copy.nav.content
 
-  // One tall stack of long, whole sheets and photo strips, crossing each other on alternating
-  // diagonals (some slope down to the right, some down to the left). Top sheet first; each sheet
-  // below is 20px longer. Because the tilts alternate, a sheet sticks out most on one side, and its
-  // label sits exactly where it sticks out furthest (worked out from the slopes), so it stays visible.
+  // One stack of long, whole sheets and photo strips spanning the full width of the folder, crossing
+  // each other on alternating diagonals. Positions are in % of the folder width, so the stack grows
+  // with the screen. Top sheet first; each sheet below reaches 13px lower. Because the tilts
+  // alternate, every sheet sticks out most on one side, and its label sits right there.
   const items: Item[] = [
     {
-      href: "/tutorials", label: nav.tutorials, left: 60, top: 16, width: 900, height: 64, rotate: 2.4, z: 10, labelAt: 79, ink: "stamp",
+      href: "/tutorials", label: nav.tutorials, left: 5, width: 88, height: 54, rotate: 1.8, z: 10, labelAt: 87, ink: "stamp",
       style: { background: crumpled("#e7e7e4"), clipPath: "polygon(0 0, 100% 0, 100% 90%, 94% 100%, 76% 94%, 58% 100%, 38% 95%, 18% 100%, 0 93%)" },
     },
     {
-      href: "/vlogs", label: nav.vlogs, left: 20, top: 16, width: 960, height: 84, rotate: -1.8, z: 9, labelAt: 21, ink: "camcorder",
+      href: "/vlogs", label: nav.vlogs, left: 2, width: 94, height: 67, rotate: -1.6, z: 9, labelAt: 10, ink: "camcorder",
       style: {
         background: "radial-gradient(circle at 22% 55%, rgb(190 190 195 / 40%), transparent 14%), radial-gradient(circle at 64% 45%, rgb(140 140 148 / 40%), transparent 16%), linear-gradient(180deg, #5b5b61, #2f2f34)",
         boxShadow: "inset 0 0 0 4px #f7f3ee",
       },
     },
     {
-      href: "/projects", label: nav.projects, left: 90, top: 16, width: 880, height: 104, rotate: 2.2, z: 8, labelAt: 83, ink: "marker",
+      href: "/projects", label: nav.projects, left: 6, width: 90, height: 80, rotate: 1.7, z: 8, labelAt: 83, ink: "marker",
       style: { background: grid },
     },
     {
-      href: "/travels", label: nav.travels, left: 40, top: 16, width: 940, height: 124, rotate: -2, z: 7, labelAt: 32, ink: "datestamp",
+      href: "/courses", label: nav.courses, left: 3, width: 93, height: 93, rotate: -1.5, z: 7, labelAt: 24, ink: "datestamp",
       style: {
         background: "radial-gradient(ellipse at 40% 130%, rgb(255 255 255 / 70%), transparent 45%), linear-gradient(180deg, #a9a9ae, #d2d2d5)",
         boxShadow: "inset 0 0 0 4px #f7f3ee",
       },
     },
     {
-      href: "/thoughts", label: nav.thoughts, left: 110, top: 16, width: 860, height: 144, rotate: 2.6, z: 6, labelAt: 69, ink: "pen",
+      href: "/thoughts", label: nav.thoughts, left: 7, width: 88, height: 106, rotate: 1.9, z: 6, labelAt: 76, ink: "pen",
       style: { background: crumpled("#fafaf9"), clipPath: "polygon(0 0, 100% 0, 100% 96%, 88% 100%, 66% 97%, 42% 100%, 20% 97%, 0 100%)" },
     },
     {
-      href: "/progress", label: nav.progress, left: 30, top: 16, width: 980, height: 164, rotate: -1.6, z: 5, labelAt: 11, ink: "typewriter",
+      href: "/progress", label: nav.progress, left: 2, width: 95, height: 119, rotate: -1.4, z: 5, labelAt: 12, ink: "typewriter",
       style: {
         background: "repeating-linear-gradient(180deg, transparent 0 10px, rgb(110 120 160 / 20%) 10px 11px), #ececea",
         borderRadius: "0 0 6px 6px",
+      },
+    },
+    {
+      // an envelope with grey "airmail" edging
+      href: "/#contact", label: copy.nav.contact, left: 5, width: 91, height: 132, rotate: 1.6, z: 4, labelAt: 90, ink: "postmark",
+      style: {
+        border: "5px solid transparent",
+        background: "linear-gradient(#ffffff, #ffffff) padding-box, repeating-linear-gradient(135deg, #cfcfcc 0 9px, #ffffff 9px 18px) border-box",
+        borderRadius: "0 0 4px 4px",
       },
     },
   ]
@@ -200,25 +208,22 @@ export function FolderNav() {
   return (
     <header className="folder-nav sticky top-0 z-40">
       {/* ================= Desktop: the upside-down pink folder ================= */}
-      <div className="relative mx-auto hidden h-[204px] w-[min(1040px,calc(100%-24px))] overflow-x-clip lg:block">
+      <div className="relative mx-auto hidden h-[168px] w-[min(1680px,calc(100%-24px))] overflow-x-clip lg:block">
         {/* Back flap: deeper on the left, stepping up on the right like a folder's tab cut. */}
-        <div className="folder-flap absolute top-[34px] left-0 h-[150px] w-[72%] rounded-b-[18px]" />
-        <div className="folder-flap absolute top-[34px] right-0 h-[124px] w-[28.5%] rounded-br-[18px]" />
+        <div className="folder-flap absolute top-[30px] left-0 h-[134px] w-[72%] rounded-b-[18px]" />
+        <div className="folder-flap absolute top-[30px] right-0 h-[110px] w-[28.5%] rounded-br-[18px]" />
         {/* concave curve joining the two flap levels */}
-        <span aria-hidden="true" className="folder-flap-curve absolute top-[158px] left-[72%] size-[18px]" />
+        <span aria-hidden="true" className="folder-flap-curve absolute top-[140px] left-[72%] size-[18px]" />
 
-        {/* Contents stuffed into the pocket (the nav links): a fixed 1040px stage */}
-        <nav
-          aria-label={copy.nav.explore}
-          className="absolute top-0 left-1/2 z-[2] h-full w-[1040px] -translate-x-1/2 origin-top max-[1064px]:scale-[0.96]"
-        >
+        {/* Contents stuffed into the pocket (the nav links), spanning the whole folder */}
+        <nav aria-label={copy.nav.explore} className="absolute inset-0 z-[2]">
           {items.map((item) => (
             <PocketItem key={item.href} item={item} active={isActive(pathname, item.href)} />
           ))}
         </nav>
 
         {/* Front cover */}
-        <div className="folder-cover absolute inset-x-0 top-0 z-[3] h-[60px]">
+        <div className="folder-cover absolute inset-x-0 top-0 z-[3] h-[52px]">
           <div className="relative flex h-full items-center justify-between px-6">
             <div className="flex items-center gap-4">
               <StarSticker size={34} className="-mt-1 rotate-[-12deg] drop-shadow-sm" />
@@ -237,7 +242,7 @@ export function FolderNav() {
           </div>
           <PaperClip className="pointer-events-none absolute -top-3 right-5 rotate-[8deg] drop-shadow-sm" />
           {/* binder clip gripping the cover's lower edge, holding the folder shut over the papers */}
-          <BinderClip className="pointer-events-none absolute -bottom-[34px] left-[29%] drop-shadow-md" />
+          <BinderClip className="pointer-events-none absolute -bottom-[34px] left-[30%] drop-shadow-md" />
         </div>
       </div>
 
