@@ -9,6 +9,9 @@ const nothingNew: HeroSlotData = { status: "nothing new", vlog: null, newTaskCou
 export async function getHeroSlotData(now = Date.now()): Promise<HeroSlotData> {
   const cutoff = now - NEW_WINDOW_DAYS * 24 * 60 * 60 * 1000
 
+  // No database configured (e.g. local dev without .env): don't even try to connect.
+  if (!process.env.DATABASE_URL) return nothingNew
+
   try {
     const [vlogs, tasks] = await Promise.all([getPublicEntries("vlog"), getPublicTasks()])
 
@@ -33,7 +36,9 @@ export async function getHeroSlotData(now = Date.now()): Promise<HeroSlotData> {
     if (newTaskCount > 0) return { status: "new tasks", vlog: null, newTaskCount }
   } catch (error) {
     // The hero must render even when the database is unreachable (e.g. local dev without env vars).
-    console.error("[hero-status] falling back to 'nothing new':", error)
+    // Log only the message: passing an AggregateError object to console.error crashes Next's dev logger.
+    const message = error instanceof Error ? error.message.split("\n")[0] : String(error)
+    console.warn(`[hero-status] falling back to 'nothing new': ${message}`)
   }
 
   return nothingNew

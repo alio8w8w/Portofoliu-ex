@@ -22,7 +22,8 @@
       "PowerShell(Get-NetTCPConnection -LocalPort 3457 -State Listen -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -Confirm:$false }; \"stopped\")",
       "Bash(python -)",
       "Bash(npm uninstall *)",
-      "Bash(node login.mjs admin.png)"
+      "Bash(node login.mjs admin.png)",
+      "Bash(grep -n \"Folder navigation\\\\|^\\\\.folder\\\\|^@media \\(max-width: 1100px\\)\\\\|^/\\\\* ---------- Audio\\\\|rhinestone\" app/globals.css)"
     ]
   }
 }

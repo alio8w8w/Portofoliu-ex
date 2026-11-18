@@ -14,8 +14,9 @@ export async function requireOwnerId() {
   return owner.userId
 }
 
+/** Owner whose content is shown publicly; null without a database so public pages render empty instead of crashing. */
 export async function getSiteOwnerId() {
-  return OWNER_ID
+  return process.env.DATABASE_URL ? OWNER_ID : null
 }
 
 export function isSameOriginRequest(request: Request) {
