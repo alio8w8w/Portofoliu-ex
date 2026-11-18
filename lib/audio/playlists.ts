@@ -12,7 +12,7 @@ export const PLAYLIST_ROUTES: { path: string; folder: string; exact?: boolean }[
 ]
 
 /** Folder used by every route not listed above. */
-export const DEFAULT_PLAYLIST_FOLDER = "mus2"
+export const DEFAULT_PLAYLIST_FOLDER = "mus1"
 
 const playlists = generated as Record<string, Track[]>
 

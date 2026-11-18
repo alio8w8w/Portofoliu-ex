@@ -1,4 +1,49 @@
 {
-  "mus1": [],
+  "mus1": [
+    {
+      "src": "/mus1/Annie_Lennox_-_I_Put_A_Spell_On_You_-_I_Put_A_Spell_On_You_(mp3.pm).mp3",
+      "title": "Annie Lennox I Put A Spell On You I Put A Spell On You (mp3.pm)"
+    },
+    {
+      "src": "/mus1/Celeste%20%E2%80%94%20Woman%20Of%20Faces%20(Official%20Video)%20%5B4Wa3RWq_3U4%5D.mp3",
+      "title": "Celeste — Woman Of Faces (Official Video) [4Wa3RWq 3U4]"
+    },
+    {
+      "src": "/mus1/Celeste_-_This_Is_Who_I_Am_From_The_Day_of_the_Jackal_(mp3.pm).mp3",
+      "title": "Celeste This Is Who I Am From The Day of the Jackal (mp3.pm)"
+    },
+    {
+      "src": "/mus1/Mary_J._Blige_-_Family_Affair_(mp3.pm).aac",
+      "title": "Mary J. Blige Family Affair (mp3.pm)"
+    },
+    {
+      "src": "/mus1/Mary_J._Blige_-_without_you_(mp3.pm).mp3",
+      "title": "Mary J. Blige without you (mp3.pm)"
+    },
+    {
+      "src": "/mus1/michael_buble_-_sway_-_Bez_nazvaniya_(mp3.pm).mp3",
+      "title": "michael buble sway Bez nazvaniya (mp3.pm)"
+    },
+    {
+      "src": "/mus1/Pink_Floyd_-_Wish_You_Where_Here_VINNE_HOT-Q_HAAS_Summer_19_Mix_._(mp3.pm).mp3",
+      "title": "Pink Floyd Wish You Where Here VINNE HOT Q HAAS Summer 19 Mix . (mp3.pm)"
+    },
+    {
+      "src": "/mus1/Queen_-_Somebody_To_Love_Remastered_2011_(mp3.pm).aac",
+      "title": "Queen Somebody To Love Remastered 2011 (mp3.pm)"
+    },
+    {
+      "src": "/mus1/Snoh_Aalegra_Ft._Vince_Staples_-_Nothing_Burns_Like_The_Cold_CDQ_(mp3.pm).aac",
+      "title": "Snoh Aalegra Ft. Vince Staples Nothing Burns Like The Cold CDQ (mp3.pm)"
+    },
+    {
+      "src": "/mus1/Star_Mark_Greatest_Hits_CD1_-_Scorpions_Send_Me_an_Angel_(mp3.pm).mp3",
+      "title": "Star Mark Greatest Hits CD1 Scorpions Send Me an Angel (mp3.pm)"
+    },
+    {
+      "src": "/mus1/The_Avener_Ane_Brun_-_To_Let_Myself_Go_(mp3.pm).mp3",
+      "title": "The Avener Ane Brun To Let Myself Go (mp3.pm)"
+    }
+  ],
   "mus2": []
 }
